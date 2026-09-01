@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>
+    Keuangan Pokja Adiwiyata
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
+</head>
+
+<body>
+
+  <!-- ============================= -->
+  <!-- HEADER -->
+  <!-- ============================= -->
+
+  <header class="app-header">
+
+    <div class="brand">
+
+      <div class="brand-icon">
+        🌱
+      </div>
+
+      <div>
+
+        <h1>
+          Keuangan Pokja Adiwiyata
+        </h1>
+
+        <p>
+          Sistem Keuangan Terintegrasi
+        </p>
+
+      </div>
+
+    </div>
+
+    <div
+      id="connectionStatus"
+      class="connection-status"
+    >
+      Menghubungkan...
+    </div>
+
+  </header>
+
+
+  <!-- ============================= -->
+  <!-- NAVIGASI -->
+  <!-- ============================= -->
+
+  <nav class="main-nav">
+
+    <button
+      class="nav-button active"
+      data-page="dashboard"
+      onclick="showPage('dashboard')"
+    >
+      🏠
+      <span>Dashboard</span>
+    </button>
+
+
+    <button
+      class="nav-button"
+      data-page="income"
+      onclick="showPage('income')"
+    >
+      💰
+      <span>Pemasukan</span>
+    </button>
+
+
+    <button
+      class="nav-button"
+      data-page="expense"
+      onclick="showPage('expense')"
+    >
+      💸
+      <span>Pengeluaran</span>
+    </button>
+
+
+    <button
+      class="nav-button"
+      data-page="salary"
+      onclick="showPage('salary')"
+    >
+      👥
+      <span>Penggajian</span>
+    </button>
+
+
+    <button
+      class="nav-button"
+      data-page="history"
+      onclick="showPage('history')"
+    >
+      📋
+      <span>Riwayat</span>
+    </button>
+
+  </nav>
+
+
+  <!-- ============================= -->
+  <!-- MAIN -->
+  <!-- ============================= -->
+
+  <main class="app-main">
+
+
+    <!-- =========================== -->
+    <!-- DASHBOARD -->
+    <!-- =========================== -->
+
+    <section
+      id="page-dashboard"
+      class="page active"
+    >
+
+      <div class="page-heading">
+
+        <div>
+
+          <h2>
+            Dashboard Keuangan
+          </h2>
+
+          <p>
+            Pantau kondisi keuangan Pokja secara langsung.
+          </p>
+
+        </div>
+
+        <button
+          class="refresh-button"
+          onclick="loadDashboard()"
+        >
+          🔄
+          Perbarui
+        </button>
+
+      </div>
+
+
+      <!-- KARTU KEUANGAN -->
+
+      <div class="finance-grid">
+
+
+        <article class="finance-card income-card">
+
+          <div class="finance-icon">
+            💰
+          </div>
+
+          <div class="finance-content">
+
+            <span>
+              Total Pemasukan
+            </span>
+
+            <strong id="totalIncome">
+              Rp0
+            </strong>
+
+          </div>
+
+        </article>
+
+
+        <article class="finance-card expense-card">
+
+          <div class="finance-icon">
+            💸
+          </div>
+
+          <div class="finance-content">
+
+            <span>
+              Total Pengeluaran
+            </span>
+
+            <strong id="totalExpense">
+              Rp0
+            </strong>
+
+          </div>
+
+        </article>
+
+
+        <article class="finance-card cash-card">
+
+          <div class="finance-icon">
+            🏦
+          </div>
+
+          <div class="finance-content">
+
+            <span>
+              Kas Pokja
+            </span>
+
+            <strong id="kasPokja">
+              Rp0
+            </strong>
+
+          </div>
+
+        </article>
+
+
+        <article class="finance-card salary-card">
+
+          <div class="finance-icon">
+            👥
+          </div>
+
+          <div class="finance-content">
+
+            <span>
+              Kas Penggajian
+            </span>
+
+            <strong id="kasPenggajian">
+              Rp0
+            </strong>
+
+          </div>
+
+        </article>
+
+      </div>
+
+
+      <!-- =========================== -->
+      <!-- INFORMASI PENGGAJIAN -->
+      <!-- =========================== -->
+
+      <div class="section-card">
+
+        <div class="section-title">
+
+          <div>
+
+            <h3>
+              📊 Informasi Penggajian
+            </h3>
+
+            <p>
+              Informasi poin dan distribusi gaji periode berjalan.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="stats-grid">
+
+
+          <div class="stat-box">
+
+            <span>
+              Total Poin
+            </span>
+
+            <strong id="totalPoints">
+              0
+            </strong>
+
+          </div>
+
+
+          <div class="stat-box">
+
+            <span>
+              Nilai per Poin
+            </span>
+
+            <strong id="pointValue">
+              Rp0
+            </strong>
+
+          </div>
+
+
+          <div class="stat-box">
+
+            <span>
+              Jumlah Pegawai
+            </span>
+
+            <strong id="employeeCount">
+              0
+            </strong>
+
+          </div>
+
+
+          <div class="stat-box">
+
+            <span>
+              Total Gaji
+            </span>
+
+            <strong id="totalSalary">
+              Rp0
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- =========================== -->
+      <!-- STATUS SISTEM -->
+      <!-- =========================== -->
+
+      <div class="section-card">
+
+        <div class="section-title">
+
+          <div>
+
+            <h3>
+              🛡️ Status Sistem
+            </h3>
+
+            <p>
+              Pemeriksaan koneksi dan database.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="system-status-grid">
+
+
+          <div class="status-item">
+
+            <span>
+              API
+            </span>
+
+            <strong
+              id="apiStatus"
+              class="status-waiting"
+            >
+              Memeriksa...
+            </strong>
+
+          </div>
+
+
+          <div class="status-item">
+
+            <span>
+              Database
+            </span>
+
+            <strong
+              id="databaseStatus"
+              class="status-waiting"
+            >
+              Memeriksa...
+            </strong>
+
+          </div>
+
+
+          <div class="status-item">
+
+            <span>
+              Periode
+            </span>
+
+            <strong id="currentPeriod">
+              -
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ============================= -->
+    <!-- PEMASUKAN -->
+    <!-- ============================= -->
+
+    <section
+      id="page-income"
+      class="page"
+    >
+
+      <div class="page-heading">
+
+        <div>
+
+          <h2>
+            💰 Pemasukan
+          </h2>
+
+          <p>
+            Pencatatan pemasukan Pokja.
+          </p>
+
+        </div>
+
+      </div>
+
+      <div
+        id="incomePageContent"
+        class="section-card"
+      >
+
+        <p>
+          Modul pemasukan akan diaktifkan pada tahap berikutnya.
+        </p>
+
+      </div>
+
+    </section>
+
+
+    <!-- ============================= -->
+    <!-- PENGELUARAN -->
+    <!-- ============================= -->
+
+    <section
+      id="page-expense"
+      class="page"
+    >
+
+      <div class="page-heading">
+
+        <div>
+
+          <h2>
+            💸 Pengeluaran
+          </h2>
+
+          <p>
+            Pencatatan pengeluaran Pokja.
+          </p>
+
+        </div>
+
+      </div>
+
+      <div
+        id="expensePageContent"
+        class="section-card"
+      >
+
+        <p>
+          Modul pengeluaran akan diaktifkan pada tahap berikutnya.
+        </p>
+
+      </div>
+
+    </section>
+
+
+    <!-- ============================= -->
+    <!-- PENGGAJIAN -->
+    <!-- ============================= -->
+
+    <section
+      id="page-salary"
+      class="page"
+    >
+
+      <div class="page-heading">
+
+        <div>
+
+          <h2>
+            👥 Penggajian
+          </h2>
+
+          <p>
+            Daftar poin, gaji, simulasi, dan pembayaran.
+          </p>
+
+        </div>
+
+      </div>
+
+      <div
+        id="salaryPageContent"
+        class="section-card"
+      >
+
+        <p>
+          Modul penggajian akan diaktifkan pada tahap berikutnya.
+        </p>
+
+      </div>
+
+    </section>
+
+
+    <!-- ============================= -->
+    <!-- RIWAYAT -->
+    <!-- ============================= -->
+
+    <section
+      id="page-history"
+      class="page"
+    >
+
+      <div class="page-heading">
+
+        <div>
+
+          <h2>
+            📋 Riwayat Transaksi
+          </h2>
+
+          <p>
+            Riwayat transaksi keuangan Pokja.
+          </p>
+
+        </div>
+
+      </div>
+
+      <div
+        id="historyPageContent"
+        class="section-card"
+      >
+
+        <p>
+          Modul riwayat akan diaktifkan pada tahap berikutnya.
+        </p>
+
+      </div>
+
+    </section>
+
+
+  </main>
+
+
+  <!-- ============================= -->
+  <!-- NOTIFIKASI -->
+  <!-- ============================= -->
+
+  <div
+    id="toast"
+    class="toast"
+  >
+  </div>
+
+
+  <!-- ============================= -->
+  <!-- JAVASCRIPT -->
+  <!-- ============================= -->
+
+  <script src="script.js"></script>
+
+</body>
+</html>
