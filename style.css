@@ -953,3 +953,494 @@ body {
   }
 
 }
+
+/* =========================================================
+   MODUL PEMASUKAN
+   ========================================================= */
+
+.income-layout {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1.5fr)
+    minmax(280px, 0.8fr);
+
+  gap: 22px;
+
+  align-items: start;
+}
+
+
+.income-layout .section-card {
+  margin-top: 0;
+}
+
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+
+.form-group label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  font-size: 13px;
+  font-weight: 800;
+
+  color: var(--text);
+}
+
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+
+  padding: 12px 14px;
+
+  border: 1px solid var(--border);
+
+  border-radius: 12px;
+
+  outline: none;
+
+  color: var(--text);
+
+  background: #fff;
+
+  font: inherit;
+  font-size: 14px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--green-3);
+
+  box-shadow:
+    0 0 0 4px rgba(34,197,94,0.10);
+}
+
+
+.form-group textarea {
+  resize: vertical;
+
+  min-height: 105px;
+}
+
+
+.form-group small {
+  display: block;
+
+  margin-top: 5px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+
+.money-input {
+  position: relative;
+}
+
+
+.money-input span {
+  position: absolute;
+
+  left: 14px;
+  top: 50%;
+
+  transform:
+    translateY(-50%);
+
+  color: var(--muted);
+
+  font-size: 14px;
+  font-weight: 800;
+
+  pointer-events: none;
+}
+
+
+.money-input input {
+  padding-left: 42px;
+}
+
+
+/* =========================================================
+   ALLOCATION PREVIEW
+   ========================================================= */
+
+.allocation-preview {
+  margin:
+    8px 0 20px;
+
+  padding: 16px;
+
+  border-radius: 16px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f0fdf4,
+      #eff6ff
+    );
+
+  border:
+    1px solid #dcfce7;
+}
+
+
+.allocation-header {
+  margin-bottom: 12px;
+}
+
+
+.allocation-header strong {
+  display: block;
+
+  font-size: 14px;
+}
+
+
+.allocation-header span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+
+.allocation-grid {
+  display: grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap: 12px;
+}
+
+
+.allocation-item {
+  padding: 14px;
+
+  border-radius: 14px;
+
+  background: white;
+
+  border: 1px solid rgba(226,232,240,0.9);
+}
+
+
+.allocation-item span {
+  display: block;
+
+  font-size: 12px;
+  font-weight: 750;
+}
+
+
+.allocation-item strong {
+  display: block;
+
+  margin-top: 7px;
+
+  font-size: 19px;
+  font-weight: 850;
+}
+
+
+.allocation-item small {
+  display: block;
+
+  margin-top: 3px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+
+.allocation-item.pokja {
+  border-left:
+    4px solid #22c55e;
+}
+
+
+.allocation-item.payroll {
+  border-left:
+    4px solid #a855f7;
+}
+
+
+/* =========================================================
+   BUTTON
+   ========================================================= */
+
+.primary-button {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 48px;
+
+  padding: 12px 18px;
+
+  border: 0;
+
+  border-radius: 13px;
+
+  color: white;
+
+  background:
+    linear-gradient(
+      135deg,
+      #166534,
+      #22c55e
+    );
+
+  font: inherit;
+
+  font-size: 14px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 8px 18px rgba(34,197,94,0.20);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+
+.primary-button:hover {
+  transform:
+    translateY(-2px);
+
+  box-shadow:
+    0 12px 25px rgba(34,197,94,0.25);
+}
+
+
+.primary-button:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.65;
+
+  transform: none;
+
+  box-shadow: none;
+}
+
+
+/* =========================================================
+   INFO PEMASUKAN
+   ========================================================= */
+
+.info-list {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 15px;
+}
+
+
+.info-item {
+  display: flex;
+
+  gap: 12px;
+
+  padding: 13px;
+
+  border-radius: 14px;
+
+  background: #f8fafc;
+
+  border: 1px solid #eef2f7;
+}
+
+
+.info-number {
+  width: 43px;
+  height: 43px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  color: var(--green-2);
+
+  background: var(--green-4);
+
+  font-size: 12px;
+  font-weight: 850;
+}
+
+
+.info-item strong {
+  display: block;
+
+  font-size: 13px;
+}
+
+
+.info-item p {
+  margin-top: 4px;
+
+  color: var(--muted);
+
+  font-size: 12px;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   HASIL TRANSAKSI
+   ========================================================= */
+
+.transaction-result {
+  display: none;
+
+  margin-top: 22px;
+
+  padding: 20px;
+
+  border-radius: 17px;
+
+  background: white;
+
+  border:
+    1px solid #bbf7d0;
+
+  box-shadow: var(--shadow);
+}
+
+
+.transaction-result.show {
+  display: block;
+}
+
+
+.transaction-success-title {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  color: var(--green-2);
+
+  font-size: 16px;
+  font-weight: 850;
+}
+
+
+.transaction-id {
+  margin-top: 10px;
+
+  padding: 10px 12px;
+
+  border-radius: 10px;
+
+  color: var(--green-2);
+
+  background: var(--green-4);
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+
+.transaction-detail-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 10px;
+
+  margin-top: 14px;
+}
+
+
+.transaction-detail {
+  padding: 12px;
+
+  border-radius: 11px;
+
+  background: #f8fafc;
+}
+
+
+.transaction-detail span {
+  display: block;
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+
+.transaction-detail strong {
+  display: block;
+
+  margin-top: 4px;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   RESPONSIVE PEMASUKAN
+   ========================================================= */
+
+@media (max-width: 850px) {
+
+  .income-layout {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+
+@media (max-width: 600px) {
+
+  .allocation-grid {
+    grid-template-columns: 1fr;
+  }
+
+
+  .transaction-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
