@@ -960,3 +960,595 @@ document.addEventListener(
 
   }
 );
+
+/* =========================================================
+   MODUL PEMASUKAN
+   ========================================================= */
+
+
+/* =========================================================
+   FORMAT TANGGAL HARI INI
+   ========================================================= */
+
+function setDefaultIncomeDate() {
+
+  const input =
+    document.getElementById(
+      'incomeDate'
+    );
+
+  if (!input) {
+    return;
+  }
+
+
+  /*
+   * Menggunakan tanggal lokal
+   * browser.
+   *
+   * Backend tetap menjadi
+   * sumber validasi tanggal.
+   */
+
+  const now =
+    new Date();
+
+
+  const year =
+    now.getFullYear();
+
+
+  const month =
+    String(
+      now.getMonth() + 1
+    ).padStart(
+      2,
+      '0'
+    );
+
+
+  const day =
+    String(
+      now.getDate()
+    ).padStart(
+      2,
+      '0'
+    );
+
+
+  input.value =
+    `${year}-${month}-${day}`;
+
+}
+
+
+/* =========================================================
+   PREVIEW ALOKASI
+   ========================================================= */
+
+function updateIncomePreview() {
+
+  const input =
+    document.getElementById(
+      'incomeNominal'
+    );
+
+
+  const kasPokjaElement =
+    document.getElementById(
+      'previewKasPokja'
+    );
+
+
+  const kasPenggajianElement =
+    document.getElementById(
+      'previewKasPenggajian'
+    );
+
+
+  if (!input) {
+    return;
+  }
+
+
+  const nominal =
+    Number(
+      input.value || 0
+    );
+
+
+  const kasPokja =
+    nominal * 30 / 100;
+
+
+  const kasPenggajian =
+    nominal * 70 / 100;
+
+
+  if (kasPokjaElement) {
+
+    kasPokjaElement.textContent =
+      formatRupiah(
+        kasPokja
+      );
+
+  }
+
+
+  if (kasPenggajianElement) {
+
+    kasPenggajianElement.textContent =
+      formatRupiah(
+        kasPenggajian
+      );
+
+  }
+
+}
+
+
+/* =========================================================
+   POST API
+   ========================================================= */
+
+async function apiPost(
+  payload
+) {
+
+  const response =
+    await fetch(
+      API_URL,
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'text/plain;charset=utf-8'
+        },
+
+        body:
+          JSON.stringify(
+            payload
+          )
+      }
+    );
+
+
+  if (!response.ok) {
+
+    throw new Error(
+      'Server API tidak dapat diakses. HTTP ' +
+      response.status
+    );
+
+  }
+
+
+  const result =
+    await response.json();
+
+
+  if (!result.success) {
+
+    throw new Error(
+      result.message ||
+      'Transaksi gagal diproses.'
+    );
+
+  }
+
+
+  return result;
+
+}
+
+
+/* =========================================================
+   SUBMIT PEMASUKAN
+   ========================================================= */
+
+async function submitIncome(event) {
+
+  event.preventDefault();
+
+
+  const form =
+    document.getElementById(
+      'incomeForm'
+    );
+
+
+  const button =
+    document.getElementById(
+      'incomeSubmitButton'
+    );
+
+
+  const buttonText =
+    document.getElementById(
+      'incomeSubmitText'
+    );
+
+
+  const tanggal =
+    document.getElementById(
+      'incomeDate'
+    ).value;
+
+
+  const kategori =
+    document.getElementById(
+      'incomeCategory'
+    ).value;
+
+
+  const nominal =
+    document.getElementById(
+      'incomeNominal'
+    ).value;
+
+
+  const deskripsi =
+    document.getElementById(
+      'incomeDescription'
+    ).value.trim();
+
+
+  /*
+   * Validasi ringan di frontend.
+   * Validasi utama tetap di backend.
+   */
+
+  if (!tanggal) {
+
+    showToast(
+      'Tanggal pemasukan wajib diisi.'
+    );
+
+    return;
+
+  }
+
+
+  if (!kategori) {
+
+    showToast(
+      'Kategori pemasukan wajib dipilih.'
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !nominal ||
+    Number(nominal) <= 0
+  ) {
+
+    showToast(
+      'Nominal pemasukan harus lebih besar dari 0.'
+    );
+
+    return;
+
+  }
+
+
+  /*
+   * Konfirmasi sebelum transaksi.
+   */
+
+  const nominalNumber =
+    Number(nominal);
+
+
+  const konfirmasi =
+    window.confirm(
+      'Simpan pemasukan sebesar ' +
+      formatRupiah(
+        nominalNumber
+      ) +
+      ' dengan kategori "' +
+      kategori +
+      '"?'
+    );
+
+
+  if (!konfirmasi) {
+    return;
+  }
+
+
+  try {
+
+    button.disabled =
+      true;
+
+
+    buttonText.textContent =
+      '⏳ Menyimpan...';
+
+
+    const result =
+      await apiPost({
+
+        action:
+          'addIncome',
+
+        tanggal:
+          tanggal,
+
+        nominal:
+          nominalNumber,
+
+        kategori:
+          kategori,
+
+        deskripsi:
+          deskripsi,
+
+        userAdmin:
+          'Aplikasi'
+
+      });
+
+
+    /*
+     * Tampilkan hasil transaksi.
+     */
+
+    showIncomeResult(
+      result.data
+    );
+
+
+    /*
+     * Reset form.
+     */
+
+    form.reset();
+
+
+    setDefaultIncomeDate();
+
+
+    updateIncomePreview();
+
+
+    /*
+     * Update dashboard
+     * secara otomatis.
+     */
+
+    await loadDashboard();
+
+
+    await loadDatabaseStatus();
+
+
+    showToast(
+      'Pemasukan berhasil disimpan.'
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      'ADD INCOME ERROR:',
+      error
+    );
+
+
+    showToast(
+      error.message ||
+      'Pemasukan gagal disimpan.',
+      5000
+    );
+
+
+  } finally {
+
+    button.disabled =
+      false;
+
+
+    buttonText.textContent =
+      '💾 Simpan Pemasukan';
+
+  }
+
+}
+
+
+/* =========================================================
+   TAMPILKAN HASIL PEMASUKAN
+   ========================================================= */
+
+function showIncomeResult(
+  data
+) {
+
+  const container =
+    document.getElementById(
+      'incomeResult'
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  if (!data) {
+    return;
+  }
+
+
+  container.innerHTML = `
+
+    <div class="transaction-success-title">
+      ✅ Pemasukan Berhasil Disimpan
+    </div>
+
+    <div class="transaction-id">
+      ${escapeHtml(
+        data.idTransaksi || '-'
+      )}
+    </div>
+
+    <div class="transaction-detail-grid">
+
+      <div class="transaction-detail">
+
+        <span>
+          Tanggal
+        </span>
+
+        <strong>
+          ${escapeHtml(
+            data.tanggal || '-'
+          )}
+        </strong>
+
+      </div>
+
+
+      <div class="transaction-detail">
+
+        <span>
+          Nominal
+        </span>
+
+        <strong>
+          ${formatRupiah(
+            data.nominal
+          )}
+        </strong>
+
+      </div>
+
+
+      <div class="transaction-detail">
+
+        <span>
+          Kategori
+        </span>
+
+        <strong>
+          ${escapeHtml(
+            data.kategori || '-'
+          )}
+        </strong>
+
+      </div>
+
+
+      <div class="transaction-detail">
+
+        <span>
+          Kas Pokja 30%
+        </span>
+
+        <strong>
+          ${formatRupiah(
+            data.alokasiKasPokja
+          )}
+        </strong>
+
+      </div>
+
+
+      <div class="transaction-detail">
+
+        <span>
+          Kas Penggajian 70%
+        </span>
+
+        <strong>
+          ${formatRupiah(
+            data.alokasiKasPenggajian
+          )}
+        </strong>
+
+      </div>
+
+
+      <div class="transaction-detail">
+
+        <span>
+          Status
+        </span>
+
+        <strong>
+          TERSIMPAN
+        </strong>
+
+      </div>
+
+    </div>
+  `;
+
+
+  container.classList.add(
+    'show'
+  );
+
+
+  container.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center'
+  });
+
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+   ========================================================= */
+
+function escapeHtml(
+  value
+) {
+
+  return String(
+    value ?? ''
+  )
+    .replace(
+      /&/g,
+      '&amp;'
+    )
+    .replace(
+      /</g,
+      '&lt;'
+    )
+    .replace(
+      />/g,
+      '&gt;'
+    )
+    .replace(
+      /"/g,
+      '&quot;'
+    )
+    .replace(
+      /'/g,
+      '&#039;'
+    );
+
+}
+
+
+/* =========================================================
+   INISIALISASI FORM PEMASUKAN
+   ========================================================= */
+
+document.addEventListener(
+  'DOMContentLoaded',
+  function() {
+
+    setDefaultIncomeDate();
+
+    updateIncomePreview();
+
+  }
+);
