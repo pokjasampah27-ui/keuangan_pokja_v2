@@ -409,39 +409,371 @@
     <!-- PEMASUKAN -->
     <!-- ============================= -->
 
-    <section
-      id="page-income"
-      class="page"
-    >
+    <!-- ============================= -->
+<!-- PEMASUKAN -->
+<!-- ============================= -->
 
-      <div class="page-heading">
+<section
+  id="page-income"
+  class="page"
+>
+
+  <div class="page-heading">
+
+    <div>
+      <h2>💰 Pemasukan</h2>
+
+      <p>
+        Catat pemasukan Pokja Adiwiyata dengan pembagian kas otomatis.
+      </p>
+    </div>
+
+  </div>
+
+
+  <div class="income-layout">
+
+
+    <!-- ========================= -->
+    <!-- FORM PEMASUKAN -->
+    <!-- ========================= -->
+
+    <div class="section-card">
+
+      <div class="section-title">
 
         <div>
-
-          <h2>
-            💰 Pemasukan
-          </h2>
+          <h3>➕ Tambah Pemasukan</h3>
 
           <p>
-            Pencatatan pemasukan Pokja.
+            Isi data pemasukan dengan lengkap.
           </p>
+        </div>
+
+      </div>
+
+
+      <form
+        id="incomeForm"
+        onsubmit="submitIncome(event)"
+        autocomplete="off"
+      >
+
+
+        <!-- TANGGAL -->
+
+        <div class="form-group">
+
+          <label for="incomeDate">
+            Tanggal Pemasukan
+          </label>
+
+          <input
+            type="date"
+            id="incomeDate"
+            name="tanggal"
+            required
+          >
+
+        </div>
+
+
+        <!-- KATEGORI -->
+
+        <div class="form-group">
+
+          <label for="incomeCategory">
+            Kategori Pemasukan
+          </label>
+
+          <select
+            id="incomeCategory"
+            name="kategori"
+            required
+          >
+
+            <option
+              value=""
+            >
+              — Pilih kategori —
+            </option>
+
+            <option
+              value="Penjualan Sampah Botol"
+            >
+              Penjualan Sampah Botol
+            </option>
+
+            <option
+              value="Penjualan Pupuk"
+            >
+              Penjualan Pupuk
+            </option>
+
+            <option
+              value="Penjualan Barang Kreatif"
+            >
+              Penjualan Barang Kreatif
+            </option>
+
+            <option
+              value="Sumbangan"
+            >
+              Sumbangan
+            </option>
+
+            <option
+              value="Bantuan Lembaga"
+            >
+              Bantuan Lembaga
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- NOMINAL -->
+
+        <div class="form-group">
+
+          <label for="incomeNominal">
+            Nominal Pemasukan
+          </label>
+
+          <div class="money-input">
+
+            <span>
+              Rp
+            </span>
+
+            <input
+              type="number"
+              id="incomeNominal"
+              name="nominal"
+              min="1"
+              step="1"
+              placeholder="Contoh: 100000"
+              required
+              oninput="updateIncomePreview()"
+            >
+
+          </div>
+
+        </div>
+
+
+        <!-- DESKRIPSI -->
+
+        <div class="form-group">
+
+          <label for="incomeDescription">
+            Deskripsi
+          </label>
+
+          <textarea
+            id="incomeDescription"
+            name="deskripsi"
+            rows="4"
+            maxlength="3000"
+            placeholder="Contoh: Penjualan sampah botol minggu pertama."
+          ></textarea>
+
+          <small>
+            Maksimal 500 kata.
+          </small>
+
+        </div>
+
+
+        <!-- PREVIEW ALOKASI -->
+
+        <div class="allocation-preview">
+
+          <div class="allocation-header">
+
+            <div>
+              <strong>
+                📊 Preview Alokasi
+              </strong>
+
+              <span>
+                Perhitungan final dilakukan oleh server.
+              </span>
+            </div>
+
+          </div>
+
+
+          <div class="allocation-grid">
+
+
+            <div class="allocation-item pokja">
+
+              <span>
+                🌱 Kas Pokja
+              </span>
+
+              <strong
+                id="previewKasPokja"
+              >
+                Rp0
+              </strong>
+
+              <small>
+                30%
+              </small>
+
+            </div>
+
+
+            <div class="allocation-item payroll">
+
+              <span>
+                👥 Kas Penggajian
+              </span>
+
+              <strong
+                id="previewKasPenggajian"
+              >
+                Rp0
+              </strong>
+
+              <small>
+                70%
+              </small>
+
+            </div>
+
+
+          </div>
+
+        </div>
+
+
+        <!-- BUTTON -->
+
+        <button
+          type="submit"
+          id="incomeSubmitButton"
+          class="primary-button"
+        >
+
+          <span id="incomeSubmitText">
+            💾 Simpan Pemasukan
+          </span>
+
+        </button>
+
+
+      </form>
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- INFO -->
+    <!-- ========================= -->
+
+    <div class="section-card income-info-card">
+
+      <div class="section-title">
+
+        <div>
+          <h3>💡 Informasi</h3>
+
+          <p>
+            Sistem pembagian pemasukan.
+          </p>
+        </div>
+
+      </div>
+
+
+      <div class="info-list">
+
+        <div class="info-item">
+
+          <div class="info-number">
+            30%
+          </div>
+
+          <div>
+
+            <strong>
+              Kas Pokja
+            </strong>
+
+            <p>
+              Digunakan untuk kebutuhan operasional Pokja.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="info-item">
+
+          <div class="info-number">
+            70%
+          </div>
+
+          <div>
+
+            <strong>
+              Kas Penggajian
+            </strong>
+
+            <p>
+              Dialokasikan untuk pembayaran gaji berdasarkan poin.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="info-item">
+
+          <div class="info-number">
+            🔒
+          </div>
+
+          <div>
+
+            <strong>
+              Validasi Server
+            </strong>
+
+            <p>
+              Kategori, tanggal, nominal, dan pembagian divalidasi oleh backend.
+            </p>
+
+          </div>
 
         </div>
 
       </div>
 
-      <div
-        id="incomePageContent"
-        class="section-card"
-      >
+    </div>
 
-        <p>
-          Modul pemasukan akan diaktifkan pada tahap berikutnya.
-        </p>
 
-      </div>
+  </div>
 
-    </section>
+
+  <!-- ========================= -->
+  <!-- HASIL TRANSAKSI -->
+  <!-- ========================= -->
+
+  <div
+    id="incomeResult"
+    class="transaction-result"
+  >
+
+  </div>
+
+</section>
 
 
     <!-- ============================= -->
