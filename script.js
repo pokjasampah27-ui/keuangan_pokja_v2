@@ -1552,3 +1552,359 @@ document.addEventListener(
 
   }
 );
+// =====================================================
+// RIWAYAT TRANSAKSI
+// =====================================================
+
+async function loadTransactionHistory() {
+
+  const typeElement =
+    document.getElementById('historyType');
+
+  const monthElement =
+    document.getElementById('historyMonth');
+
+  const yearElement =
+    document.getElementById('historyYear');
+
+  const type =
+    typeElement
+      ? typeElement.value
+      : 'SEMUA';
+
+  const month =
+    monthElement
+      ? monthElement.value
+      : '';
+
+  const year =
+    yearElement
+      ? yearElement.value
+      : '';
+
+
+  const statusElement =
+    document.getElementById(
+      'historyStatus'
+    );
+
+  const tableBody =
+    document.getElementById(
+      'historyTableBody'
+    );
+
+
+  if (statusElement) {
+    statusElement.textContent =
+      'Memuat transaksi...';
+  }
+
+
+  try {
+
+    let url =
+      API_URL +
+      '?action=transactions' +
+      '&tipe=' +
+      encodeURIComponent(type);
+
+
+    if (month) {
+
+      url +=
+        '&bulan=' +
+        encodeURIComponent(month);
+
+    }
+
+
+    if (year) {
+
+      url +=
+        '&tahun=' +
+        encodeURIComponent(year);
+
+    }
+
+
+    const response =
+      await fetch(url);
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        'HTTP Error ' +
+        response.status
+      );
+
+    }
+
+
+    const result =
+      await response.json();
+
+
+    if (!result.success) {
+
+      throw new Error(
+        result.message ||
+        'Gagal mengambil riwayat transaksi.'
+      );
+
+    }
+
+
+    const data =
+      result.data || {};
+
+
+    renderTransactionHistory(
+      data
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      'loadTransactionHistory:',
+      error
+    );
+
+
+    if (statusElement) {
+
+      statusElement.textContent =
+        'Gagal memuat transaksi.';
+
+    }
+
+
+    if (tableBody) {
+
+      tableBody.innerHTML = `
+        <tr>
+          <td
+            colspan="7"
+            class="empty-state"
+          >
+            ❌ Gagal mengambil data transaksi.
+          </td>
+        </tr>
+      `;
+
+    }
+
+  }
+
+}
+
+
+// =====================================================
+// RENDER RIWAYAT TRANSAKSI
+// =====================================================
+
+function renderTransactionHistory(data) {
+
+  const transactions =
+    Array.isArray(data.transaksi)
+      ? data.transaksi
+      : [];
+
+
+  const countElement =
+    document.getElementById(
+      'historyTransactionCount'
+    );
+
+  const incomeElement =
+    document.getElementById(
+      'historyTotalIncome'
+    );
+
+  const expenseElement =
+    document.getElementById(
+      'historyTotalExpense'
+    );
+
+  const statusElement =
+    document.getElementById(
+      'historyStatus'
+    );
+
+  const tableBody =
+    document.getElementById(
+      'historyTableBody'
+    );
+
+
+  // -----------------------------------------------
+  // RINGKASAN
+  // -----------------------------------------------
+
+  if (countElement) {
+
+    countElement.textContent =
+      Number(data.jumlah || 0);
+
+  }
+
+
+  if (incomeElement) {
+
+    incomeElement.textContent =
+      formatRupiah(
+        Number(
+          data.totalPemasukan || 0
+        )
+      );
+
+  }
+
+
+  if (expenseElement) {
+
+    expenseElement.textContent =
+      formatRupiah(
+        Number(
+          data.totalPengeluaran || 0
+        )
+      );
+
+  }
+
+
+  // -----------------------------------------------
+  // TABEL
+  // -----------------------------------------------
+
+  if (!tableBody) {
+    return;
+  }
+
+
+  if (transactions.length === 0) {
+
+    tableBody.innerHTML = `
+      <tr>
+        <td
+          colspan="7"
+          class="empty-state"
+        >
+          📭 Belum ada transaksi.
+        </td>
+      </tr>
+    `;
+
+
+    if (statusElement) {
+
+      statusElement.textContent =
+        'Tidak ada transaksi pada filter yang dipilih.';
+
+    }
+
+    return;
+
+  }
+
+
+  tableBody.innerHTML =
+    transactions
+      .map(function(item, index) {
+
+        const isIncome =
+          item.jenis === 'PEMASUKAN';
+
+
+        const jenisLabel =
+          isIncome
+            ? '💰 Pemasukan'
+            : '💸 Pengeluaran';
+
+
+        return `
+
+          <tr>
+
+            <td>
+              ${index + 1}
+            </td>
+
+            <td>
+              ${escapeHtml(
+                item.idTransaksi || '-'
+              )}
+            </td>
+
+            <td>
+              ${escapeHtml(
+                item.tanggal || '-'
+              )}
+            </td>
+
+            <td>
+              <span class="${
+                isIncome
+                  ? 'transaction-income'
+                  : 'transaction-expense'
+              }">
+                ${jenisLabel}
+              </span>
+            </td>
+
+            <td>
+              ${escapeHtml(
+                item.kategori || '-'
+              )}
+            </td>
+
+            <td>
+              ${escapeHtml(
+                item.deskripsi || '-'
+              )}
+            </td>
+
+            <td>
+              <strong>
+                ${formatRupiah(
+                  Number(
+                    item.nominal || 0
+                  )
+                )}
+              </strong>
+            </td>
+
+          </tr>
+
+        `;
+
+      })
+      .join('');
+
+
+  if (statusElement) {
+
+    statusElement.textContent =
+      transactions.length +
+      ' transaksi ditemukan.';
+
+  }
+
+}
+
+
+// =====================================================
+// ESCAPE HTML
+// =====================================================
+
+function escapeHtml(value) {
+
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+}
