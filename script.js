@@ -1905,3 +1905,420 @@ function renderTransactionHistory(data) {
   }
 
 }
+/* =========================================================
+   MODUL PENGGAJIAN
+   ========================================================= */
+
+async function loadSalaryList() {
+
+  const statusElement =
+    document.getElementById('salaryStatus');
+
+  const tableBody =
+    document.getElementById('salaryTableBody');
+
+  if (statusElement) {
+    statusElement.textContent =
+      'Memuat data penggajian...';
+  }
+
+  try {
+
+    const result =
+      await apiGet('salaryList');
+
+    const data =
+      result.data || {};
+
+    renderSalaryList(data);
+
+  } catch (error) {
+
+    console.error(
+      'SALARY LIST ERROR:',
+      error
+    );
+
+    if (statusElement) {
+      statusElement.textContent =
+        'Gagal memuat data penggajian.';
+    }
+
+    if (tableBody) {
+
+      tableBody.innerHTML = `
+        <tr>
+          <td
+            colspan="7"
+            class="empty-state"
+          >
+            ❌ Gagal mengambil data penggajian.
+          </td>
+        </tr>
+      `;
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   RENDER DAFTAR GAJI
+   ========================================================= */
+
+function renderSalaryList(data) {
+
+  const employees =
+    Array.isArray(data.pegawai)
+      ? data.pegawai
+      : [];
+
+  setText(
+    'salaryKasPenggajian',
+    formatRupiah(
+      data.kasPenggajian || 0
+    )
+  );
+
+  setText(
+    'salaryTotalPoin',
+    formatNumber(
+      data.totalPoin || 0
+    )
+  );
+
+  setText(
+    'salaryPointValue',
+    formatRupiah(
+      data.nilaiPerPoin || 0
+    )
+  );
+
+  setText(
+    'salaryTotal',
+    formatRupiah(
+      data.totalGaji || 0
+    )
+  );
+
+  setText(
+    'salaryRemaining',
+    formatRupiah(
+      data.sisaKasSetelahSimulasi || 0
+    )
+  );
+
+  setText(
+    'salaryEmployeeCount',
+    formatNumber(
+      data.jumlahPegawai || employees.length
+    )
+  );
+
+
+  const tableBody =
+    document.getElementById(
+      'salaryTableBody'
+    );
+
+  if (!tableBody) {
+    return;
+  }
+
+
+  if (employees.length === 0) {
+
+    tableBody.innerHTML = `
+      <tr>
+        <td
+          colspan="7"
+          class="empty-state"
+        >
+          📭 Belum ada data pegawai.
+        </td>
+      </tr>
+    `;
+
+    return;
+
+  }
+
+
+  tableBody.innerHTML =
+    employees.map(
+      function(employee, index) {
+
+        return `
+          <tr>
+
+            <td>
+              ${index + 1}
+            </td>
+
+            <td>
+              ${escapeHtml(
+                employee.id || '-'
+              )}
+            </td>
+
+            <td>
+              <strong>
+                ${escapeHtml(
+                  employee.nama || '-'
+                )}
+              </strong>
+            </td>
+
+            <td>
+              ${escapeHtml(
+                employee.jabatan || '-'
+              )}
+            </td>
+
+            <td>
+              ${formatNumber(
+                employee.poin || 0
+              )}
+            </td>
+
+            <td>
+              ${formatRupiah(
+                employee.gaji || 0
+              )}
+            </td>
+
+            <td>
+              <span class="salary-status">
+                ${escapeHtml(
+                  employee.status ||
+                  'Belum Dibayar'
+                )}
+              </span>
+            </td>
+
+          </tr>
+        `;
+
+      }
+    ).join('');
+
+}
+
+
+/* =========================================================
+   SIMULASI / BAYAR SEMUA GAJI
+   ========================================================= */
+
+async function payAllSalaries() {
+
+  const periodeElement =
+    document.getElementById(
+      'salaryPeriod'
+    );
+
+  const periode =
+    periodeElement
+      ? periodeElement.value
+      : '';
+
+
+  if (!periode) {
+
+    showToast(
+      'Periode pembayaran wajib dipilih.'
+    );
+
+    return;
+
+  }
+
+
+  const confirmed =
+    window.confirm(
+      'Apakah Anda yakin ingin membayar seluruh gaji untuk periode ' +
+      periode +
+      '?'
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  const button =
+    document.getElementById(
+      'payAllSalaryButton'
+    );
+
+  const buttonText =
+    document.getElementById(
+      'payAllSalaryText'
+    );
+
+
+  try {
+
+    if (button) {
+      button.disabled = true;
+    }
+
+    if (buttonText) {
+      buttonText.textContent =
+        '⏳ Memproses...';
+    }
+
+
+    const result =
+      await apiPost({
+
+        action:
+          'payAllSalaries',
+
+        periode:
+          periode
+
+      });
+
+
+    renderPaymentResult(
+      result
+    );
+
+
+    showToast(
+      'Pembayaran gaji berhasil.'
+    );
+
+
+    /*
+     * Setelah pembayaran,
+     * dashboard dan daftar gaji
+     * mengambil data terbaru.
+     */
+
+    await loadDashboard();
+
+    await loadSalaryList();
+
+
+  } catch (error) {
+
+    console.error(
+      'PAY ALL SALARIES ERROR:',
+      error
+    );
+
+    showToast(
+      error.message ||
+      'Pembayaran gaji gagal.',
+      5000
+    );
+
+
+  } finally {
+
+    if (button) {
+      button.disabled = false;
+    }
+
+    if (buttonText) {
+      buttonText.textContent =
+        '💰 Bayar Semua Gaji';
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   HASIL PEMBAYARAN
+   ========================================================= */
+
+function renderPaymentResult(result) {
+
+  const container =
+    document.getElementById(
+      'salaryPaymentResult'
+    );
+
+  if (!container || !result) {
+    return;
+  }
+
+
+  const data =
+    result || {};
+
+
+  container.innerHTML = `
+
+    <div class="transaction-success-title">
+      ✅ Pembayaran Gaji Berhasil
+    </div>
+
+    <div class="transaction-detail-grid">
+
+      <div class="transaction-detail">
+        <span>Periode</span>
+        <strong>
+          ${escapeHtml(
+            data.periode || '-'
+          )}
+        </strong>
+      </div>
+
+      <div class="transaction-detail">
+        <span>Jumlah Pegawai</span>
+        <strong>
+          ${formatNumber(
+            data.jumlahPegawai || 0
+          )}
+        </strong>
+      </div>
+
+      <div class="transaction-detail">
+        <span>Total Poin</span>
+        <strong>
+          ${formatNumber(
+            data.totalPoin || 0
+          )}
+        </strong>
+      </div>
+
+      <div class="transaction-detail">
+        <span>Kas Penggajian</span>
+        <strong>
+          ${formatRupiah(
+            data.kasPenggajian || 0
+          )}
+        </strong>
+      </div>
+
+      <div class="transaction-detail">
+        <span>Total Gaji</span>
+        <strong>
+          ${formatRupiah(
+            data.totalGaji || 0
+          )}
+        </strong>
+      </div>
+
+      <div class="transaction-detail">
+        <span>Sisa Kas</span>
+        <strong>
+          ${formatRupiah(
+            data.sisaKas || 0
+          )}
+        </strong>
+      </div>
+
+    </div>
+  `;
+
+  container.classList.add('show');
+
+}
