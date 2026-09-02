@@ -1,7 +1,6 @@
-```javascript
 /* =========================================================
    KEUANGAN POKJA ADIWIYATA
-   SCRIPT.JS — FINAL
+   SCRIPT.JS - FINAL
    ========================================================= */
 
 
@@ -64,80 +63,6 @@ function formatNumber(value) {
   return new Intl.NumberFormat(
     'id-ID'
   ).format(number);
-
-}
-
-
-/* =========================================================
-   ESCAPE HTML
-   ========================================================= */
-
-function escapeHtml(value) {
-
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-
-}
-
-
-/* =========================================================
-   AMBIL ANGKA PERTAMA YANG VALID
-   ========================================================= */
-
-function firstNumber() {
-
-  const values =
-    Array.from(arguments);
-
-
-  for (
-    let i = 0;
-    i < values.length;
-    i++
-  ) {
-
-    if (
-      values[i] !== undefined &&
-      values[i] !== null &&
-      values[i] !== '' &&
-      isFinite(Number(values[i]))
-    ) {
-
-      return Number(values[i]);
-
-    }
-
-  }
-
-
-  return 0;
-
-}
-
-
-/* =========================================================
-   SET TEXT
-   ========================================================= */
-
-function setText(
-  id,
-  value
-) {
-
-  const element =
-    document.getElementById(id);
-
-
-  if (element) {
-
-    element.textContent =
-      value;
-
-  }
 
 }
 
@@ -213,7 +138,9 @@ async function apiPost(payload) {
         },
 
         body:
-          JSON.stringify(payload)
+          JSON.stringify(
+            payload
+          )
       }
     );
 
@@ -322,11 +249,7 @@ function showToast(
 
 
   if (!toast) {
-
-    console.log(message);
-
     return;
-
   }
 
 
@@ -389,14 +312,7 @@ function showPage(pageName) {
 
 
   if (!target) {
-
-    console.warn(
-      'Halaman tidak ditemukan:',
-      pageName
-    );
-
     return;
-
   }
 
 
@@ -440,7 +356,9 @@ function showPage(pageName) {
   });
 
 
-  /* Dashboard */
+  /* -------------------------------------------------------
+     DASHBOARD
+     ------------------------------------------------------- */
 
   if (
     pageName === 'dashboard'
@@ -448,12 +366,12 @@ function showPage(pageName) {
 
     loadDashboard();
 
-    loadDatabaseStatus();
-
   }
 
 
-  /* Riwayat transaksi */
+  /* -------------------------------------------------------
+     RIWAYAT TRANSAKSI
+     ------------------------------------------------------- */
 
   if (
     pageName === 'history'
@@ -464,26 +382,15 @@ function showPage(pageName) {
   }
 
 
-  /* Penggajian */
+  /* -------------------------------------------------------
+     PENGGAJIAN
+     ------------------------------------------------------- */
 
   if (
     pageName === 'salary'
   ) {
 
     loadSalaryList();
-
-  }
-
-
-  /* Pengeluaran */
-
-  if (
-    pageName === 'expense'
-  ) {
-
-    setDefaultExpenseDate();
-
-    loadExpenseBalance();
 
   }
 
@@ -617,7 +524,9 @@ async function loadEmployees() {
 
 
     APP_STATE.employees =
-      Array.isArray(result.data)
+      Array.isArray(
+        result.data
+      )
         ? result.data
         : [];
 
@@ -668,6 +577,11 @@ async function loadDatabaseStatus() {
       result.data || {};
 
 
+    if (!element) {
+      return data;
+    }
+
+
     let aman = true;
 
 
@@ -682,20 +596,16 @@ async function loadDatabaseStatus() {
     }
 
 
-    if (element) {
-
-      element.textContent =
-        aman
-          ? 'AMAN'
-          : 'PERIKSA';
+    element.textContent =
+      aman
+        ? 'AMAN'
+        : 'PERIKSA';
 
 
-      element.className =
-        aman
-          ? 'status-success'
-          : 'status-error';
-
-    }
+    element.className =
+      aman
+        ? 'status-success'
+        : 'status-error';
 
 
     return data;
@@ -771,8 +681,7 @@ async function loadDashboard() {
 
 
     showToast(
-      'Dashboard gagal mengambil data dari server.',
-      5000
+      'Dashboard gagal mengambil data dari server.'
     );
 
   }
@@ -848,56 +757,71 @@ function renderDashboard(data) {
   const totalSalary =
     firstNumber(
       data.totalGaji,
-      data.totalSalary,
-      data.totalGajiBulanIni
+      data.totalSalary
     );
 
 
   setText(
     'totalIncome',
-    formatRupiah(totalIncome)
+    formatRupiah(
+      totalIncome
+    )
   );
 
 
   setText(
     'totalExpense',
-    formatRupiah(totalExpense)
+    formatRupiah(
+      totalExpense
+    )
   );
 
 
   setText(
     'kasPokja',
-    formatRupiah(kasPokja)
+    formatRupiah(
+      kasPokja
+    )
   );
 
 
   setText(
     'kasPenggajian',
-    formatRupiah(kasPenggajian)
+    formatRupiah(
+      kasPenggajian
+    )
   );
 
 
   setText(
     'totalPoints',
-    formatNumber(totalPoints)
+    formatNumber(
+      totalPoints
+    )
   );
 
 
   setText(
     'pointValue',
-    formatRupiah(pointValue)
+    formatRupiah(
+      pointValue
+    )
   );
 
 
   setText(
     'employeeCount',
-    formatNumber(employeeCount)
+    formatNumber(
+      employeeCount
+    )
   );
 
 
   setText(
     'totalSalary',
-    formatRupiah(totalSalary)
+    formatRupiah(
+      totalSalary
+    )
   );
 
 
@@ -912,6 +836,107 @@ function renderDashboard(data) {
     'currentPeriod',
     periode
   );
+
+}
+
+
+/* =========================================================
+   AMBIL ANGKA PERTAMA YANG VALID
+   ========================================================= */
+
+function firstNumber() {
+
+  const values =
+    Array.from(
+      arguments
+    );
+
+
+  for (
+    let i = 0;
+    i < values.length;
+    i++
+  ) {
+
+    if (
+      values[i] !== undefined &&
+      values[i] !== null &&
+      values[i] !== '' &&
+      isFinite(
+        Number(values[i])
+      )
+    ) {
+
+      return Number(
+        values[i]
+      );
+
+    }
+
+  }
+
+
+  return 0;
+
+}
+
+
+/* =========================================================
+   SET TEXT
+   ========================================================= */
+
+function setText(
+  id,
+  value
+) {
+
+  const element =
+    document.getElementById(
+      id
+    );
+
+
+  if (element) {
+
+    element.textContent =
+      value;
+
+  }
+
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+   ========================================================= */
+
+function escapeHtml(
+  value
+) {
+
+  return String(
+    value ?? ''
+  )
+    .replace(
+      /&/g,
+      '&amp;'
+    )
+    .replace(
+      /</g,
+      '&lt;'
+    )
+    .replace(
+      />/g,
+      '&gt;'
+    )
+    .replace(
+      /"/g,
+      '&quot;'
+    )
+    .replace(
+      /'/g,
+      '&#039;'
+    );
 
 }
 
@@ -940,6 +965,7 @@ async function initializeApp() {
 
 
   await loadDashboard();
+
 
   await loadDatabaseStatus();
 
@@ -1000,6 +1026,11 @@ function startAutoRefresh() {
    MODUL PEMASUKAN
    ========================================================= */
 
+
+/* =========================================================
+   FORMAT TANGGAL HARI INI
+   ========================================================= */
+
 function setDefaultIncomeDate() {
 
   const input =
@@ -1024,13 +1055,19 @@ function setDefaultIncomeDate() {
   const month =
     String(
       now.getMonth() + 1
-    ).padStart(2, '0');
+    ).padStart(
+      2,
+      '0'
+    );
 
 
   const day =
     String(
       now.getDate()
-    ).padStart(2, '0');
+    ).padStart(
+      2,
+      '0'
+    );
 
 
   input.value =
@@ -1040,7 +1077,7 @@ function setDefaultIncomeDate() {
 
 
 /* =========================================================
-   PREVIEW PEMASUKAN
+   PREVIEW ALOKASI PEMASUKAN
    ========================================================= */
 
 function updateIncomePreview() {
@@ -1051,13 +1088,27 @@ function updateIncomePreview() {
     );
 
 
+  const kasPokjaElement =
+    document.getElementById(
+      'previewKasPokja'
+    );
+
+
+  const kasPenggajianElement =
+    document.getElementById(
+      'previewKasPenggajian'
+    );
+
+
   if (!input) {
     return;
   }
 
 
   const nominal =
-    Number(input.value || 0);
+    Number(
+      input.value || 0
+    );
 
 
   const kasPokja =
@@ -1068,16 +1119,24 @@ function updateIncomePreview() {
     nominal * 70 / 100;
 
 
-  setText(
-    'previewKasPokja',
-    formatRupiah(kasPokja)
-  );
+  if (kasPokjaElement) {
+
+    kasPokjaElement.textContent =
+      formatRupiah(
+        kasPokja
+      );
+
+  }
 
 
-  setText(
-    'previewKasPenggajian',
-    formatRupiah(kasPenggajian)
-  );
+  if (kasPenggajianElement) {
+
+    kasPenggajianElement.textContent =
+      formatRupiah(
+        kasPenggajian
+      );
+
+  }
 
 }
 
@@ -1127,43 +1186,33 @@ async function submitIncome(event) {
     );
 
 
-  const descriptionElement =
+  const deskripsiElement =
     document.getElementById(
       'incomeDescription'
     );
 
 
-  if (
-    !tanggalElement ||
-    !kategoriElement ||
-    !nominalElement
-  ) {
-
-    showToast(
-      'Form pemasukan belum lengkap.',
-      5000
-    );
-
-    return;
-
-  }
-
-
   const tanggal =
-    tanggalElement.value;
+    tanggalElement
+      ? tanggalElement.value
+      : '';
 
 
   const kategori =
-    kategoriElement.value;
+    kategoriElement
+      ? kategoriElement.value
+      : '';
 
 
   const nominal =
-    nominalElement.value;
+    nominalElement
+      ? nominalElement.value
+      : '';
 
 
   const deskripsi =
-    descriptionElement
-      ? descriptionElement.value.trim()
+    deskripsiElement
+      ? deskripsiElement.value.trim()
       : '';
 
 
@@ -1210,7 +1259,9 @@ async function submitIncome(event) {
   const konfirmasi =
     window.confirm(
       'Simpan pemasukan sebesar ' +
-      formatRupiah(nominalNumber) +
+      formatRupiah(
+        nominalNumber
+      ) +
       ' dengan kategori "' +
       kategori +
       '"?'
@@ -1225,7 +1276,10 @@ async function submitIncome(event) {
   try {
 
     if (button) {
-      button.disabled = true;
+
+      button.disabled =
+        true;
+
     }
 
 
@@ -1267,16 +1321,20 @@ async function submitIncome(event) {
 
 
     if (form) {
+
       form.reset();
+
     }
 
 
     setDefaultIncomeDate();
 
+
     updateIncomePreview();
 
 
     await loadDashboard();
+
 
     await loadDatabaseStatus();
 
@@ -1304,7 +1362,10 @@ async function submitIncome(event) {
   } finally {
 
     if (button) {
-      button.disabled = false;
+
+      button.disabled =
+        false;
+
     }
 
 
@@ -1321,10 +1382,12 @@ async function submitIncome(event) {
 
 
 /* =========================================================
-   HASIL PEMASUKAN
+   TAMPILKAN HASIL PEMASUKAN
    ========================================================= */
 
-function showIncomeResult(data) {
+function showIncomeResult(
+  data
+) {
 
   const container =
     document.getElementById(
@@ -1352,55 +1415,90 @@ function showIncomeResult(data) {
     <div class="transaction-detail-grid">
 
       <div class="transaction-detail">
-        <span>Tanggal</span>
+
+        <span>
+          Tanggal
+        </span>
+
         <strong>
           ${escapeHtml(
             data.tanggal || '-'
           )}
         </strong>
+
       </div>
 
+
       <div class="transaction-detail">
-        <span>Nominal</span>
+
+        <span>
+          Nominal
+        </span>
+
         <strong>
           ${formatRupiah(
             data.nominal
           )}
         </strong>
+
       </div>
 
+
       <div class="transaction-detail">
-        <span>Kategori</span>
+
+        <span>
+          Kategori
+        </span>
+
         <strong>
           ${escapeHtml(
             data.kategori || '-'
           )}
         </strong>
+
       </div>
 
+
       <div class="transaction-detail">
-        <span>Kas Pokja 30%</span>
+
+        <span>
+          Kas Pokja 30%
+        </span>
+
         <strong>
           ${formatRupiah(
             data.alokasiKasPokja
           )}
         </strong>
+
       </div>
 
+
       <div class="transaction-detail">
-        <span>Kas Penggajian 70%</span>
+
+        <span>
+          Kas Penggajian 70%
+        </span>
+
         <strong>
           ${formatRupiah(
             data.alokasiKasPenggajian
           )}
         </strong>
+
       </div>
 
+
       <div class="transaction-detail">
-        <span>Status</span>
+
+        <span>
+          Status
+        </span>
+
         <strong>
           TERSIMPAN
         </strong>
+
       </div>
 
     </div>
@@ -1421,424 +1519,37 @@ function showIncomeResult(data) {
 
 
 /* =========================================================
-   MODUL PENGELUARAN
+   INISIALISASI FORM PEMASUKAN
    ========================================================= */
 
-function setDefaultExpenseDate() {
+function initializeIncomeForm() {
 
-  const input =
+  setDefaultIncomeDate();
+
+  updateIncomePreview();
+
+
+  const nominalInput =
     document.getElementById(
-      'expenseDate'
-    );
-
-
-  if (!input) {
-    return;
-  }
-
-
-  const now =
-    new Date();
-
-
-  const year =
-    now.getFullYear();
-
-
-  const month =
-    String(
-      now.getMonth() + 1
-    ).padStart(2, '0');
-
-
-  const day =
-    String(
-      now.getDate()
-    ).padStart(2, '0');
-
-
-  input.value =
-    `${year}-${month}-${day}`;
-
-}
-
-
-/* =========================================================
-   LOAD SALDO KAS POKJA UNTUK PENGELUARAN
-   ========================================================= */
-
-async function loadExpenseBalance() {
-
-  try {
-
-    const result =
-      await apiGet(
-        'dashboard'
-      );
-
-
-    const data =
-      result.data || {};
-
-
-    const saldo =
-      firstNumber(
-        data.saldoKasPokja,
-        data.kasPokja,
-        data.totalKasPokja
-      );
-
-
-    setText(
-      'expenseAvailableBalance',
-      formatRupiah(saldo)
-    );
-
-
-    setText(
-      'expenseSaldo',
-      formatRupiah(saldo)
-    );
-
-
-    return saldo;
-
-
-  } catch (error) {
-
-    console.error(
-      'EXPENSE BALANCE ERROR:',
-      error
-    );
-
-
-    return 0;
-
-  }
-
-}
-
-
-/* =========================================================
-   SUBMIT PENGELUARAN
-   ========================================================= */
-
-async function submitExpense(event) {
-
-  event.preventDefault();
-
-
-  const form =
-    document.getElementById(
-      'expenseForm'
-    );
-
-
-  const button =
-    document.getElementById(
-      'expenseSubmitButton'
-    );
-
-
-  const buttonText =
-    document.getElementById(
-      'expenseSubmitText'
-    );
-
-
-  const tanggalElement =
-    document.getElementById(
-      'expenseDate'
-    );
-
-
-  const nominalElement =
-    document.getElementById(
-      'expenseNominal'
-    );
-
-
-  const descriptionElement =
-    document.getElementById(
-      'expenseDescription'
+      'incomeNominal'
     );
 
 
   if (
-    !tanggalElement ||
-    !nominalElement
+    nominalInput &&
+    !nominalInput.dataset.previewBound
   ) {
 
-    showToast(
-      'Form pengeluaran belum lengkap.',
-      5000
+    nominalInput.addEventListener(
+      'input',
+      updateIncomePreview
     );
 
-    return;
+
+    nominalInput.dataset.previewBound =
+      'true';
 
   }
-
-
-  const tanggal =
-    tanggalElement.value;
-
-
-  const nominal =
-    nominalElement.value;
-
-
-  const deskripsi =
-    descriptionElement
-      ? descriptionElement.value.trim()
-      : '';
-
-
-  if (!tanggal) {
-
-    showToast(
-      'Tanggal pengeluaran wajib diisi.'
-    );
-
-    return;
-
-  }
-
-
-  if (
-    !nominal ||
-    Number(nominal) <= 0
-  ) {
-
-    showToast(
-      'Nominal pengeluaran harus lebih besar dari 0.'
-    );
-
-    return;
-
-  }
-
-
-  if (!deskripsi) {
-
-    showToast(
-      'Deskripsi pengeluaran wajib diisi.'
-    );
-
-    return;
-
-  }
-
-
-  const nominalNumber =
-    Number(nominal);
-
-
-  const konfirmasi =
-    window.confirm(
-      'Simpan pengeluaran sebesar ' +
-      formatRupiah(nominalNumber) +
-      '?\n\n' +
-      'Deskripsi: ' +
-      deskripsi
-    );
-
-
-  if (!konfirmasi) {
-    return;
-  }
-
-
-  try {
-
-    if (button) {
-      button.disabled = true;
-    }
-
-
-    if (buttonText) {
-
-      buttonText.textContent =
-        '⏳ Menyimpan...';
-
-    }
-
-
-    const result =
-      await apiPost({
-
-        action:
-          'addExpense',
-
-        tanggal:
-          tanggal,
-
-        nominal:
-          nominalNumber,
-
-        deskripsi:
-          deskripsi,
-
-        userAdmin:
-          'Aplikasi'
-
-      });
-
-
-    showExpenseResult(
-      result.data
-    );
-
-
-    if (form) {
-      form.reset();
-    }
-
-
-    setDefaultExpenseDate();
-
-
-    await loadDashboard();
-
-    await loadDatabaseStatus();
-
-    await loadExpenseBalance();
-
-
-    showToast(
-      'Pengeluaran berhasil disimpan.'
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      'ADD EXPENSE ERROR:',
-      error
-    );
-
-
-    showToast(
-      error.message ||
-      'Pengeluaran gagal disimpan.',
-      5000
-    );
-
-
-  } finally {
-
-    if (button) {
-      button.disabled = false;
-    }
-
-
-    if (buttonText) {
-
-      buttonText.textContent =
-        '💾 Simpan Pengeluaran';
-
-    }
-
-  }
-
-}
-
-
-/* =========================================================
-   HASIL PENGELUARAN
-   ========================================================= */
-
-function showExpenseResult(data) {
-
-  const container =
-    document.getElementById(
-      'expenseResult'
-    );
-
-
-  if (!container || !data) {
-    return;
-  }
-
-
-  container.innerHTML = `
-
-    <div class="transaction-success-title">
-      ✅ Pengeluaran Berhasil Disimpan
-    </div>
-
-    <div class="transaction-id">
-      ${escapeHtml(
-        data.idTransaksi || '-'
-      )}
-    </div>
-
-    <div class="transaction-detail-grid">
-
-      <div class="transaction-detail">
-        <span>Tanggal</span>
-        <strong>
-          ${escapeHtml(
-            data.tanggal || '-'
-          )}
-        </strong>
-      </div>
-
-      <div class="transaction-detail">
-        <span>Nominal</span>
-        <strong>
-          ${formatRupiah(
-            data.nominal
-          )}
-        </strong>
-      </div>
-
-      <div class="transaction-detail">
-        <span>Deskripsi</span>
-        <strong>
-          ${escapeHtml(
-            data.deskripsi || '-'
-          )}
-        </strong>
-      </div>
-
-      <div class="transaction-detail">
-        <span>Saldo Sebelum</span>
-        <strong>
-          ${formatRupiah(
-            data.saldoSebelum
-          )}
-        </strong>
-      </div>
-
-      <div class="transaction-detail">
-        <span>Saldo Sesudah</span>
-        <strong>
-          ${formatRupiah(
-            data.saldoSesudah
-          )}
-        </strong>
-      </div>
-
-      <div class="transaction-detail">
-        <span>Status</span>
-        <strong>
-          TERSIMPAN
-        </strong>
-      </div>
-
-    </div>
-  `;
-
-
-  container.classList.add(
-    'show'
-  );
-
-
-  container.scrollIntoView({
-    behavior: 'smooth',
-    block: 'center'
-  });
 
 }
 
@@ -1911,7 +1622,9 @@ async function loadTransactionHistory() {
       API_URL +
       '?action=transactions' +
       '&tipe=' +
-      encodeURIComponent(type) +
+      encodeURIComponent(
+        type
+      ) +
       '&_=' +
       Date.now();
 
@@ -1920,7 +1633,9 @@ async function loadTransactionHistory() {
 
       url +=
         '&bulan=' +
-        encodeURIComponent(month);
+        encodeURIComponent(
+          month
+        );
 
     }
 
@@ -1929,7 +1644,9 @@ async function loadTransactionHistory() {
 
       url +=
         '&tahun=' +
-        encodeURIComponent(year);
+        encodeURIComponent(
+          year
+        );
 
     }
 
@@ -1968,15 +1685,19 @@ async function loadTransactionHistory() {
     }
 
 
+    const data =
+      result.data || {};
+
+
     renderTransactionHistory(
-      result.data || {}
+      data
     );
 
 
   } catch (error) {
 
     console.error(
-      'LOAD TRANSACTION HISTORY:',
+      'LOAD TRANSACTION HISTORY ERROR:',
       error
     );
 
@@ -1993,7 +1714,10 @@ async function loadTransactionHistory() {
 
       tableBody.innerHTML = `
         <tr>
-          <td colspan="7" class="empty-state">
+          <td
+            colspan="7"
+            class="empty-state"
+          >
             ❌ Gagal mengambil data transaksi.
           </td>
         </tr>
@@ -2010,10 +1734,14 @@ async function loadTransactionHistory() {
    RENDER RIWAYAT TRANSAKSI
    ========================================================= */
 
-function renderTransactionHistory(data) {
+function renderTransactionHistory(
+  data
+) {
 
   const transactions =
-    Array.isArray(data.transaksi)
+    Array.isArray(
+      data.transaksi
+    )
       ? data.transaksi
       : [];
 
@@ -2051,7 +1779,9 @@ function renderTransactionHistory(data) {
   if (countElement) {
 
     countElement.textContent =
-      Number(data.jumlah || 0);
+      Number(
+        data.jumlah || 0
+      );
 
   }
 
@@ -2089,7 +1819,10 @@ function renderTransactionHistory(data) {
 
     tableBody.innerHTML = `
       <tr>
-        <td colspan="7" class="empty-state">
+        <td
+          colspan="7"
+          class="empty-state"
+        >
           📭 Belum ada transaksi.
         </td>
       </tr>
@@ -2115,7 +1848,8 @@ function renderTransactionHistory(data) {
         function(item, index) {
 
           const isIncome =
-            item.jenis === 'PEMASUKAN';
+            item.jenis ===
+            'PEMASUKAN';
 
 
           const jenisLabel =
@@ -2171,6 +1905,7 @@ function renderTransactionHistory(data) {
               </td>
 
               <td>
+
                 <strong>
                   ${formatRupiah(
                     Number(
@@ -2178,6 +1913,7 @@ function renderTransactionHistory(data) {
                     )
                   )}
                 </strong>
+
               </td>
 
             </tr>
@@ -2234,8 +1970,12 @@ async function loadSalaryList() {
       );
 
 
+    const data =
+      result.data || {};
+
+
     renderSalaryList(
-      result.data || {}
+      data
     );
 
 
@@ -2259,7 +1999,10 @@ async function loadSalaryList() {
 
       tableBody.innerHTML = `
         <tr>
-          <td colspan="7" class="empty-state">
+          <td
+            colspan="7"
+            class="empty-state"
+          >
             ❌ Gagal mengambil data penggajian.
           </td>
         </tr>
@@ -2276,10 +2019,14 @@ async function loadSalaryList() {
    RENDER DAFTAR GAJI
    ========================================================= */
 
-function renderSalaryList(data) {
+function renderSalaryList(
+  data
+) {
 
   const employees =
-    Array.isArray(data.pegawai)
+    Array.isArray(
+      data.pegawai
+    )
       ? data.pegawai
       : [];
 
@@ -2348,7 +2095,10 @@ function renderSalaryList(data) {
 
     tableBody.innerHTML = `
       <tr>
-        <td colspan="7" class="empty-state">
+        <td
+          colspan="7"
+          class="empty-state"
+        >
           📭 Belum ada data pegawai.
         </td>
       </tr>
@@ -2362,7 +2112,10 @@ function renderSalaryList(data) {
   tableBody.innerHTML =
     employees
       .map(
-        function(employee, index) {
+        function(
+          employee,
+          index
+        ) {
 
           return `
 
@@ -2514,8 +2267,13 @@ async function payAllSalaries() {
       });
 
 
+    /*
+     * Backend biasanya mengembalikan
+     * data transaksi di result.data.
+     */
+
     renderPaymentResult(
-      result.data
+      result.data || result
     );
 
 
@@ -2526,7 +2284,11 @@ async function payAllSalaries() {
 
     await loadDashboard();
 
+
     await loadSalaryList();
+
+
+    await loadDatabaseStatus();
 
 
   } catch (error) {
@@ -2570,7 +2332,9 @@ async function payAllSalaries() {
    HASIL PEMBAYARAN
    ========================================================= */
 
-function renderPaymentResult(result) {
+function renderPaymentResult(
+  data
+) {
 
   const container =
     document.getElementById(
@@ -2578,76 +2342,117 @@ function renderPaymentResult(result) {
     );
 
 
-  if (!container || !result) {
+  if (
+    !container ||
+    !data
+  ) {
+
     return;
+
   }
-
-
-  const data =
-    result || {};
 
 
   container.innerHTML = `
 
     <div class="transaction-success-title">
+
       ✅ Pembayaran Gaji Berhasil
+
     </div>
+
 
     <div class="transaction-detail-grid">
 
+
       <div class="transaction-detail">
-        <span>Periode</span>
+
+        <span>
+          Periode
+        </span>
+
         <strong>
           ${escapeHtml(
             data.periode || '-'
           )}
         </strong>
+
       </div>
 
+
       <div class="transaction-detail">
-        <span>Jumlah Pegawai</span>
+
+        <span>
+          Jumlah Pegawai
+        </span>
+
         <strong>
           ${formatNumber(
             data.jumlahPegawai || 0
           )}
         </strong>
+
       </div>
 
+
       <div class="transaction-detail">
-        <span>Total Poin</span>
+
+        <span>
+          Total Poin
+        </span>
+
         <strong>
           ${formatNumber(
             data.totalPoin || 0
           )}
         </strong>
+
       </div>
 
+
       <div class="transaction-detail">
-        <span>Kas Penggajian</span>
+
+        <span>
+          Kas Penggajian
+        </span>
+
         <strong>
           ${formatRupiah(
             data.kasPenggajian || 0
           )}
         </strong>
+
       </div>
 
+
       <div class="transaction-detail">
-        <span>Total Gaji</span>
+
+        <span>
+          Total Gaji
+        </span>
+
         <strong>
           ${formatRupiah(
             data.totalGaji || 0
           )}
         </strong>
+
       </div>
 
+
       <div class="transaction-detail">
-        <span>Sisa Kas</span>
+
+        <span>
+          Sisa Kas
+        </span>
+
         <strong>
           ${formatRupiah(
             data.sisaKas || 0
           )}
         </strong>
+
       </div>
+
 
     </div>
 
@@ -2669,84 +2474,25 @@ document.addEventListener(
   'DOMContentLoaded',
   async function() {
 
-    setDefaultIncomeDate();
+    /*
+     * Form pemasukan
+     */
 
-    setDefaultExpenseDate();
+    initializeIncomeForm();
 
-    updateIncomePreview();
 
+    /*
+     * Jalankan aplikasi
+     */
 
     await initializeApp();
 
+
+    /*
+     * Auto refresh dashboard
+     */
 
     startAutoRefresh();
 
   }
 );
-
-
-/* =========================================================
-   EVENT INPUT PEMASUKAN
-   ========================================================= */
-
-document.addEventListener(
-  'input',
-  function(event) {
-
-    if (
-      event.target &&
-      event.target.id ===
-      'incomeNominal'
-    ) {
-
-      updateIncomePreview();
-
-    }
-
-  }
-);
-
-
-/* =========================================================
-   EVENT FORM PEMASUKAN
-   ========================================================= */
-
-document.addEventListener(
-  'submit',
-  function(event) {
-
-    if (
-      event.target &&
-      event.target.id ===
-      'incomeForm'
-    ) {
-
-      submitIncome(event);
-
-    }
-
-  }
-);
-
-
-/* =========================================================
-   EVENT FORM PENGELUARAN
-   ========================================================= */
-
-document.addEventListener(
-  'submit',
-  function(event) {
-
-    if (
-      event.target &&
-      event.target.id ===
-      'expenseForm'
-    ) {
-
-      submitExpense(event);
-
-    }
-
-  }
-);
-```
