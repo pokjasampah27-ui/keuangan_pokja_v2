@@ -326,7 +326,14 @@ function showPage(pageName) {
     loadTransactionHistory();
 
   }
+   
+if (
+  pageName === 'salary'
+) {
 
+  loadSalaryList();
+
+}
 
 /* =========================================================
    PING API
