@@ -1393,26 +1393,6 @@ function initializeIncomeForm() {
 
 
 /* =========================================================
-   PENGELUARAN
-   ========================================================= */
-
-function initializeExpenseForm() {
-  var dateInput =
-    document.getElementById(
-      "expenseDate"
-    );
-
-  if (
-    dateInput &&
-    !dateInput.value
-  ) {
-    dateInput.value =
-      getTodayLocal();
-  }
-}
-
-
-/* =========================================================
    RIWAYAT TRANSAKSI
    ========================================================= */
 
