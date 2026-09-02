@@ -372,6 +372,296 @@ function showPage(pageName) {
   }
 }
 
+/* =========================================================
+   SUBMIT PENGELUARAN
+   ========================================================= */
+
+async function submitExpense(event) {
+  if (event) {
+    event.preventDefault();
+  }
+
+  var form = document.getElementById("expenseForm");
+  var button = document.getElementById("expenseSubmitButton");
+  var buttonText = document.getElementById("expenseSubmitText");
+
+  var tanggalElement = document.getElementById("expenseDate");
+  var kategoriElement = document.getElementById("expenseCategory");
+  var nominalElement = document.getElementById("expenseNominal");
+  var deskripsiElement = document.getElementById("expenseDescription");
+
+  var tanggal = tanggalElement ? tanggalElement.value : "";
+  var kategori = kategoriElement ? kategoriElement.value : "";
+  var nominal = nominalElement ? nominalElement.value : "";
+  var deskripsi = deskripsiElement
+    ? deskripsiElement.value.trim()
+    : "";
+
+  if (!tanggal) {
+    showToast("Tanggal pengeluaran wajib diisi.");
+    return;
+  }
+
+  if (!kategori) {
+    showToast("Kategori pengeluaran wajib dipilih.");
+    return;
+  }
+
+  if (!nominal || Number(nominal) <= 0) {
+    showToast(
+      "Nominal pengeluaran harus lebih besar dari 0."
+    );
+    return;
+  }
+
+  var nominalNumber = Number(nominal);
+
+  var confirmed = window.confirm(
+    "Simpan pengeluaran sebesar " +
+    formatRupiah(nominalNumber) +
+    ' dengan kategori "' +
+    kategori +
+    '"?'
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    if (button) {
+      button.disabled = true;
+    }
+
+    if (buttonText) {
+      buttonText.textContent = "Menyimpan...";
+    }
+
+    var result = await apiPost({
+      action: "addExpense",
+      tanggal: tanggal,
+      nominal: nominalNumber,
+      kategori: kategori,
+      deskripsi: deskripsi,
+      userAdmin: "Aplikasi"
+    });
+
+    showExpenseResult(result.data || {});
+
+    if (form) {
+      form.reset();
+    }
+
+    if (tanggalElement) {
+      tanggalElement.value = getTodayLocal();
+    }
+
+    await loadDashboard();
+    await loadDatabaseStatus();
+
+    showToast("Pengeluaran berhasil disimpan.");
+
+  } catch (error) {
+    console.error(
+      "ADD EXPENSE ERROR:",
+      error
+    );
+
+    showToast(
+      error.message ||
+      "Pengeluaran gagal disimpan.",
+      5000
+    );
+
+  } finally {
+    if (button) {
+      button.disabled = false;
+    }
+
+    if (buttonText) {
+      buttonText.textContent =
+        "Simpan Pengeluaran";
+    }
+  }
+}
+
+
+/* =========================================================
+   HASIL PENGELUARAN
+   ========================================================= */
+
+function showExpenseResult(data) {
+  var container =
+    document.getElementById("expenseResult");
+
+  if (!container || !data) {
+    return;
+  }
+
+  var html = "";
+
+  html +=
+    '<div class="transaction-success-title">' +
+    "Pengeluaran Berhasil Disimpan" +
+    "</div>";
+
+  html +=
+    '<div class="transaction-id">' +
+    escapeHtml(
+      data.idTransaksi || "-"
+    ) +
+    "</div>";
+
+  html +=
+    '<div class="transaction-detail-grid">';
+
+  html +=
+    '<div class="transaction-detail">' +
+    "<span>Tanggal</span>" +
+    "<strong>" +
+    escapeHtml(
+      data.tanggal || "-"
+    ) +
+    "</strong>" +
+    "</div>";
+
+  html +=
+    '<div class="transaction-detail">' +
+    "<span>Nominal</span>" +
+    "<strong>" +
+    formatRupiah(
+      data.nominal || 0
+    ) +
+    "</strong>" +
+    "</div>";
+
+  html +=
+    '<div class="transaction-detail">' +
+    "<span>Kategori</span>" +
+    "<strong>" +
+    escapeHtml(
+      data.kategori || "-"
+    ) +
+    "</strong>" +
+    "</div>";
+
+  html +=
+    '<div class="transaction-detail">' +
+    "<span>Deskripsi</span>" +
+    "<strong>" +
+    escapeHtml(
+      data.deskripsi || "-"
+    ) +
+    "</strong>" +
+    "</div>";
+
+  html +=
+    '<div class="transaction-detail">' +
+    "<span>Status</span>" +
+    "<strong>TERSIMPAN</strong>" +
+    "</div>";
+
+  html += "</div>";
+
+  container.innerHTML = html;
+
+  container.classList.add("show");
+
+  container.scrollIntoView({
+    behavior: "smooth",
+    block: "center"
+  });
+}
+
+
+/* =========================================================
+   PREVIEW PENGELUARAN
+   ========================================================= */
+
+function updateExpensePreview() {
+  var input =
+    document.getElementById(
+      "expenseNominal"
+    );
+
+  var preview =
+    document.getElementById(
+      "previewExpense"
+    );
+
+  if (!input || !preview) {
+    return;
+  }
+
+  var nominal =
+    Number(input.value || 0);
+
+  if (!isFinite(nominal)) {
+    nominal = 0;
+  }
+
+  preview.textContent =
+    formatRupiah(nominal);
+}
+
+
+/* =========================================================
+   INISIALISASI FORM PENGELUARAN
+   ========================================================= */
+
+function initializeExpenseForm() {
+
+  var dateInput =
+    document.getElementById(
+      "expenseDate"
+    );
+
+  if (
+    dateInput &&
+    !dateInput.value
+  ) {
+    dateInput.value =
+      getTodayLocal();
+  }
+
+  var nominalInput =
+    document.getElementById(
+      "expenseNominal"
+    );
+
+  if (
+    nominalInput &&
+    !nominalInput.dataset.previewBound
+  ) {
+    nominalInput.addEventListener(
+      "input",
+      updateExpensePreview
+    );
+
+    nominalInput.dataset.previewBound =
+      "true";
+  }
+
+  updateExpensePreview();
+
+  var form =
+    document.getElementById(
+      "expenseForm"
+    );
+
+  if (
+    form &&
+    !form.dataset.submitBound
+  ) {
+    form.addEventListener(
+      "submit",
+      submitExpense
+    );
+
+    form.dataset.submitBound =
+      "true";
+  }
+}
 
 /* =========================================================
    PING API
