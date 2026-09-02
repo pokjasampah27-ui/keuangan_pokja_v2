@@ -2164,6 +2164,12 @@ window.updateIncomePreview =
 window.showToast =
   showToast;
 
+window.submitExpense =
+  submitExpense;
+
+window.updateExpensePreview =
+  updateExpensePreview;
+
 
 /* =========================================================
    DOM READY
