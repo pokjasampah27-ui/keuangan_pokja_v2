@@ -304,7 +304,7 @@ function showPage(pageName) {
    * data terbaru ketika dibuka.
    */
 
-  if (
+    if (
     pageName === 'dashboard'
   ) {
 
@@ -312,7 +312,20 @@ function showPage(pageName) {
 
   }
 
-}
+
+  /*
+   * Riwayat selalu mengambil
+   * transaksi terbaru ketika
+   * halaman dibuka.
+   */
+
+  if (
+    pageName === 'history'
+  ) {
+
+    loadTransactionHistory();
+
+  }
 
 
 /* =========================================================
