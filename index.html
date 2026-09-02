@@ -880,15 +880,288 @@
       </div>
 
       <div
-        id="historyPageContent"
-        class="section-card"
-      >
+  id="historyPageContent"
+  class="history-container"
+>
+
+  <!-- ==========================================
+       FILTER RIWAYAT
+       ========================================== -->
+
+  <div class="section-card">
+
+    <div class="section-title">
+
+      <div>
+        <h3>🔎 Filter Transaksi</h3>
 
         <p>
-          Modul riwayat akan diaktifkan pada tahap berikutnya.
+          Tampilkan transaksi berdasarkan jenis dan periode.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="refresh-button"
+        onclick="loadTransactionHistory()"
+      >
+        🔄 Perbarui
+      </button>
+
+    </div>
+
+
+    <div class="history-filter-grid">
+
+      <!-- JENIS -->
+
+      <div class="form-group">
+
+        <label for="historyType">
+          Jenis Transaksi
+        </label>
+
+        <select id="historyType">
+
+          <option value="SEMUA">
+            Semua Transaksi
+          </option>
+
+          <option value="PEMASUKAN">
+            Pemasukan
+          </option>
+
+          <option value="PENGELUARAN">
+            Pengeluaran
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- BULAN -->
+
+      <div class="form-group">
+
+        <label for="historyMonth">
+          Bulan
+        </label>
+
+        <select id="historyMonth">
+
+          <option value="">
+            Semua Bulan
+          </option>
+
+          <option value="1">Januari</option>
+          <option value="2">Februari</option>
+          <option value="3">Maret</option>
+          <option value="4">April</option>
+          <option value="5">Mei</option>
+          <option value="6">Juni</option>
+          <option value="7">Juli</option>
+          <option value="8">Agustus</option>
+          <option value="9">September</option>
+          <option value="10">Oktober</option>
+          <option value="11">November</option>
+          <option value="12">Desember</option>
+
+        </select>
+
+      </div>
+
+
+      <!-- TAHUN -->
+
+      <div class="form-group">
+
+        <label for="historyYear">
+          Tahun
+        </label>
+
+        <select id="historyYear">
+
+          <option value="">
+            Semua Tahun
+          </option>
+
+          <option value="2026">
+            2026
+          </option>
+
+          <option value="2027">
+            2027
+          </option>
+
+          <option value="2028">
+            2028
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- TOMBOL -->
+
+      <div class="form-group history-filter-button">
+
+        <label>&nbsp;</label>
+
+        <button
+          type="button"
+          class="primary-button"
+          onclick="loadTransactionHistory()"
+        >
+          🔍 Tampilkan
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==========================================
+       RINGKASAN
+       ========================================== -->
+
+  <div class="history-summary-grid">
+
+    <div class="stat-box">
+
+      <span>
+        📋 Jumlah Transaksi
+      </span>
+
+      <strong id="historyTransactionCount">
+        0
+      </strong>
+
+    </div>
+
+
+    <div class="stat-box">
+
+      <span>
+        💰 Total Pemasukan
+      </span>
+
+      <strong id="historyTotalIncome">
+        Rp0
+      </strong>
+
+    </div>
+
+
+    <div class="stat-box">
+
+      <span>
+        💸 Total Pengeluaran
+      </span>
+
+      <strong id="historyTotalExpense">
+        Rp0
+      </strong>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==========================================
+       TABEL TRANSAKSI
+       ========================================== -->
+
+  <div class="section-card">
+
+    <div class="section-title">
+
+      <div>
+
+        <h3>
+          📋 Daftar Transaksi
+        </h3>
+
+        <p id="historyStatus">
+          Memuat data transaksi...
         </p>
 
       </div>
+
+    </div>
+
+
+    <div
+      id="historyTableWrapper"
+      class="table-wrapper"
+    >
+
+      <table class="transaction-table">
+
+        <thead>
+
+          <tr>
+
+            <th>
+              No.
+            </th>
+
+            <th>
+              ID Transaksi
+            </th>
+
+            <th>
+              Tanggal
+            </th>
+
+            <th>
+              Jenis
+            </th>
+
+            <th>
+              Kategori
+            </th>
+
+            <th>
+              Deskripsi
+            </th>
+
+            <th>
+              Nominal
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody
+          id="historyTableBody"
+        >
+
+          <tr>
+
+            <td
+              colspan="7"
+              class="empty-state"
+            >
+              Belum ada transaksi.
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</div>
 
     </section>
 
