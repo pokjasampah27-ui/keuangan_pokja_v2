@@ -1,1015 +1,1014 @@
-```javascript
 /* ================================================================
    KEUANGAN POKJA PENGELOLAAN SAMPAH ADIWIYATA
-   FRONTEND JAVASCRIPT
-   GitHub Pages → Google Apps Script → Google Spreadsheet
+   SCRIPT.JS — FINAL
+   Frontend : GitHub Pages
+   Backend  : Google Apps Script Web App
+   Database : Google Spreadsheet
+   Timezone : Asia/Jakarta
 
-   Backend yang digunakan:
-   Code.gs
-
-   Endpoint:
-   GET  ?action=...
-   POST { action: ... }
-
-   ================================================================ */
+   SESUAI DENGAN:
+   - index.html FINAL
+   - Code.gs backend
+================================================================ */
 
 
 /* ================================================================
-   KONFIGURASI
-   ================================================================ */
+   1. KONFIGURASI
+================================================================ */
 
-const APP_CONFIG = {
+const CONFIG = {
 
-    /*
-     * GANTI dengan URL Web App Google Apps Script Anda.
-     *
-     * Contoh:
-     * https://script.google.com/macros/s/XXXXXXXXXXXX/exec
-     */
+    // ============================================================
+    // GANTI DENGAN URL WEB APP CODE.GS ANDA
+    // ============================================================
     API_URL:
         'https://script.google.com/macros/s/AKfycby8HssHrbPp7Njhy9TpP9kC3fOSx1MTNmontcdN3H_v57txKJNc5llC1nrvXr0WPqtt/exec',
 
-    APP_NAME:
-        'Keuangan Pokja Pengelolaan Sampah Adiwiyata',
-
-    DEFAULT_INCOME_SOURCES: [
-        'Penjualan Botol',
-        'Penjualan Pupuk',
-        'Bantuan Sekolah',
-        'Sumbangan',
-        'Proposal'
-    ],
-
-    DEFAULT_MAX_DESCRIPTION_WORDS: 300,
+    TIMEZONE: 'Asia/Jakarta',
 
     CURRENCY_LOCALE: 'id-ID',
 
-    CURRENCY_PREFIX: 'Rp ',
+    CURRENCY_CODE: 'IDR',
 
-    REFRESH_INTERVAL:
-        5 * 60 * 1000
+    MAX_EXPENSE_WORDS: 300,
+
+    REFRESH_INTERVAL: 60000,
+
+    REQUEST_TIMEOUT: 30000,
+
+    AUTO_REFRESH: true
+
 };
 
 
 /* ================================================================
-   STATE APLIKASI
-   ================================================================ */
+   2. NAMA ACTION API
+================================================================ */
+
+const API_ACTIONS = {
+
+    INFO: 'info',
+
+    DASHBOARD: 'dashboard',
+
+    GET_INCOME: 'getIncome',
+
+    ADD_INCOME: 'addIncome',
+
+    GET_EXPENSE: 'getExpense',
+
+    ADD_EXPENSE: 'addExpense',
+
+    GET_PAYROLL: 'getPayroll',
+
+    PAY_SALARY: 'paySalary',
+
+    GET_CASH: 'getCash',
+
+    GET_EMPLOYEES: 'getEmployees',
+
+    GET_HISTORY: 'getHistory'
+
+};
+
+
+/* ================================================================
+   3. STATE APLIKASI
+================================================================ */
 
 const state = {
 
-    config: null,
+    initialized: false,
 
-    dashboard: null,
+    loading: false,
+
+    currentMenu: 'dashboardSection',
+
+    currentMonth: '',
+
+    currentDate: '',
+
+    dashboard: {},
 
     income: [],
 
     expense: [],
 
-    employees: [],
-
     payroll: [],
+
+    employees: [],
 
     history: [],
 
-    currentPayrollMonth: '',
+    cash: {},
 
-    loading: false,
+    selectedSalary: null,
 
-    initialized: false
+    lastUpdated: null
+
 };
 
 
 /* ================================================================
-   HELPER DOM
-   ================================================================ */
+   4. DOM HELPER
+================================================================ */
 
-function $(selector) {
+function $(id) {
+    return document.getElementById(id);
+}
+
+
+function exists(id) {
+    return !!$(id);
+}
+
+
+function query(selector) {
     return document.querySelector(selector);
 }
 
 
-function $all(selector) {
-    return Array.from(
-        document.querySelectorAll(selector)
-    );
+function queryAll(selector) {
+    return document.querySelectorAll(selector);
 }
 
 
-/**
- * Mengambil elemen berdasarkan beberapa kemungkinan ID.
- *
- * Berguna supaya index.html nanti tetap fleksibel.
- */
-function getElementByIds(...ids) {
+/* ================================================================
+   5. FORMAT DATA
+================================================================ */
 
-    for (const id of ids) {
+function formatRupiah(value) {
 
-        const element =
-            document.getElementById(id);
+    const number = Number(value) || 0;
 
-        if (element) {
-            return element;
+    return new Intl.NumberFormat(
+        CONFIG.CURRENCY_LOCALE,
+        {
+            style: 'currency',
+            currency: CONFIG.CURRENCY_CODE,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
         }
-    }
-
-    return null;
+    ).format(number);
 }
 
 
-/* ================================================================
-   INITIALIZATION
-   ================================================================ */
+function formatNumber(value) {
 
-document.addEventListener(
-    'DOMContentLoaded',
-    initializeApp
-);
+    const number = Number(value) || 0;
 
-
-async function initializeApp() {
-
-    if (state.initialized) {
-        return;
-    }
-
-    state.initialized = true;
-
-    setupStaticEvents();
-
-    initializeDateInputs();
-
-    initializeDescriptionCounter();
-
-    setCurrentDateDefaults();
-
-    updateConnectionStatus(
-        'Menghubungkan ke server...',
-        'loading'
-    );
-
-    try {
-
-        await loadAppData();
-
-        updateConnectionStatus(
-            'Terhubung',
-            'online'
-        );
-
-    } catch (error) {
-
-        console.error(
-            'Initialization error:',
-            error
-        );
-
-        updateConnectionStatus(
-            'Gagal terhubung',
-            'offline'
-        );
-
-        showToast(
-            getErrorMessage(error),
-            'error'
-        );
-    }
-
-    /*
-     * Refresh periodik.
-     */
-    window.setInterval(
-        async function() {
-
-            if (
-                document.hidden ||
-                state.loading
-            ) {
-                return;
-            }
-
-            try {
-
-                await refreshDashboardOnly();
-
-            } catch (error) {
-
-                console.warn(
-                    'Auto refresh gagal:',
-                    error
-                );
-            }
-
-        },
-        APP_CONFIG.REFRESH_INTERVAL
-    );
+    return new Intl.NumberFormat(
+        CONFIG.CURRENCY_LOCALE
+    ).format(number);
 }
 
 
-/* ================================================================
-   EVENT LISTENER
-   ================================================================ */
+function formatDateDisplay(value) {
 
-function setupStaticEvents() {
+    if (!value) return '-';
 
-    /*
-     * Form pemasukan.
-     */
-    const incomeForm =
-        getElementByIds(
-            'incomeForm',
-            'formPemasukan'
-        );
+    const date = parseDate(value);
 
-    if (incomeForm) {
-
-        incomeForm.addEventListener(
-            'submit',
-            handleIncomeSubmit
-        );
+    if (!date || Number.isNaN(date.getTime())) {
+        return String(value);
     }
 
-
-    /*
-     * Form pengeluaran.
-     */
-    const expenseForm =
-        getElementByIds(
-            'expenseForm',
-            'formPengeluaran'
-        );
-
-    if (expenseForm) {
-
-        expenseForm.addEventListener(
-            'submit',
-            handleExpenseSubmit
-        );
-    }
-
-
-    /*
-     * Input deskripsi.
-     */
-    const descriptionInput =
-        getElementByIds(
-            'expenseDescription',
-            'deskripsiPengeluaran',
-            'description'
-        );
-
-    if (descriptionInput) {
-
-        descriptionInput.addEventListener(
-            'input',
-            updateDescriptionCounter
-        );
-    }
-
-
-    /*
-     * Filter bulan penggajian.
-     */
-    const payrollMonth =
-        getElementByIds(
-            'payrollMonth',
-            'bulanPenggajian',
-            'salaryMonth'
-        );
-
-    if (payrollMonth) {
-
-        payrollMonth.addEventListener(
-            'change',
-            handlePayrollMonthChange
-        );
-    }
-
-
-    /*
-     * Tombol refresh.
-     */
-    $all(
-        '[data-action="refresh"], #refreshButton, #btnRefresh'
-    ).forEach(function(button) {
-
-        button.addEventListener(
-            'click',
-            function() {
-                loadAppData(true);
-            }
-        );
-
-    });
-
-
-    /*
-     * Delegated event untuk tombol bayar gaji.
-     */
-    document.addEventListener(
-        'click',
-        handleGlobalClick
-    );
-
-
-    /*
-     * Navigasi menu.
-     */
-    $all(
-        '[data-menu], [data-section-target]'
-    ).forEach(function(element) {
-
-        element.addEventListener(
-            'click',
-            handleNavigationClick
-        );
-
-    });
-}
-
-
-/* ================================================================
-   GLOBAL CLICK
-   ================================================================ */
-
-function handleGlobalClick(event) {
-
-    const payButton =
-        event.target.closest(
-            '[data-pay-salary], [data-action="pay-salary"], .btn-pay-salary'
-        );
-
-    if (payButton) {
-
-        event.preventDefault();
-
-        handlePaySalary(payButton);
-
-        return;
-    }
-
-
-    const deleteButton =
-        event.target.closest(
-            '[data-delete]'
-        );
-
-    if (deleteButton) {
-
-        /*
-         * Backend saat ini tidak menyediakan delete.
-         * Sengaja tidak dilakukan dari frontend.
-         */
-
-        event.preventDefault();
-
-        showToast(
-            'Penghapusan transaksi tidak diaktifkan untuk menjaga keamanan data.',
-            'warning'
-        );
-    }
-}
-
-
-/* ================================================================
-   NAVIGASI
-   ================================================================ */
-
-function handleNavigationClick(event) {
-
-    const element =
-        event.currentTarget;
-
-    const target =
-        element.dataset.menu ||
-        element.dataset.sectionTarget;
-
-    if (!target) {
-        return;
-    }
-
-    const targetElement =
-        document.getElementById(target);
-
-    if (targetElement) {
-
-        event.preventDefault();
-
-        targetElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-        });
-    }
-}
-
-
-/* ================================================================
-   LOAD APP DATA
-   ================================================================ */
-
-async function loadAppData(showLoading = false) {
-
-    if (showLoading) {
-        setGlobalLoading(true);
-    }
-
-    try {
-
-        const result =
-            await apiGet(
-                'getAppData'
-            );
-
-        if (!result.success) {
-
-            throw new Error(
-                result.message ||
-                'Gagal mengambil data aplikasi.'
-            );
+    return new Intl.DateTimeFormat(
+        'id-ID',
+        {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            timeZone: CONFIG.TIMEZONE
         }
-
-        state.config =
-            result.config || {};
-
-        state.dashboard =
-            result.dashboard || {};
-
-        state.income =
-            Array.isArray(result.income?.data)
-                ? result.income.data
-                : [];
-
-        state.expense =
-            Array.isArray(result.expense?.data)
-                ? result.expense.data
-                : [];
-
-        state.employees =
-            Array.isArray(result.employees?.data)
-                ? result.employees.data
-                : [];
-
-        state.payroll =
-            Array.isArray(result.payroll?.data)
-                ? result.payroll.data
-                : [];
-
-        state.history =
-            Array.isArray(result.history?.data)
-                ? result.history.data
-                : [];
-
-        state.currentPayrollMonth =
-            result.payroll?.month ||
-            state.config.currentMonth ||
-            getCurrentMonth();
-
-        renderEverything();
-
-        return result;
-
-    } finally {
-
-        if (showLoading) {
-            setGlobalLoading(false);
-        }
-    }
+    ).format(date);
 }
 
 
-/* ================================================================
-   REFRESH DASHBOARD
-   ================================================================ */
+function formatDateLong(value) {
 
-async function refreshDashboardOnly() {
+    if (!value) return '-';
 
-    const result =
-        await apiGet(
-            'getDashboard'
-        );
+    const date = parseDate(value);
 
-    if (!result.success) {
-        throw new Error(
-            result.message ||
-            'Dashboard gagal diperbarui.'
-        );
+    if (!date || Number.isNaN(date.getTime())) {
+        return String(value);
     }
 
-    state.dashboard =
-        result;
+    return new Intl.DateTimeFormat(
+        'id-ID',
+        {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            timeZone: CONFIG.TIMEZONE
+        }
+    ).format(date);
+}
 
-    renderDashboard();
 
-    /*
-     * Update data payroll juga karena pembayaran
-     * dapat berubah.
-     */
-    await loadPayroll(
-        state.currentPayrollMonth
+function formatMonth(month) {
+
+    if (!month) return '-';
+
+    const parts = String(month).split('-');
+
+    if (parts.length !== 2) {
+        return String(month);
+    }
+
+    const year = Number(parts[0]);
+    const monthNumber = Number(parts[1]);
+
+    if (!year || !monthNumber) {
+        return String(month);
+    }
+
+    const date = new Date(
+        Date.UTC(year, monthNumber - 1, 1)
     );
 
-    return result;
+    return new Intl.DateTimeFormat(
+        'id-ID',
+        {
+            month: 'long',
+            year: 'numeric',
+            timeZone: 'UTC'
+        }
+    ).format(date);
 }
 
 
-/* ================================================================
-   API GET
-   ================================================================ */
+function parseDate(value) {
 
-async function apiGet(action, params = {}) {
+    if (value instanceof Date) {
+        return value;
+    }
 
-    const url =
-        buildApiUrl(
-            action,
-            params
-        );
+    if (!value) return null;
 
-    const response =
-        await fetch(
-            url,
-            {
-                method: 'GET',
-                cache: 'no-store'
-            }
-        );
+    const stringValue = String(value);
 
-    if (!response.ok) {
+    // Format YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) {
 
-        throw new Error(
-            'Server mengembalikan HTTP ' +
-            response.status
+        const [year, month, day] =
+            stringValue.split('-').map(Number);
+
+        return new Date(
+            Date.UTC(year, month - 1, day)
         );
     }
 
-    return await response.json();
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? null
+        : date;
 }
 
 
-/* ================================================================
-   API POST
-   ================================================================ */
+function toInputDate(value) {
 
-async function apiPost(payload) {
+    if (!value) return '';
 
-    const response =
-        await fetch(
-            APP_CONFIG.API_URL,
-            {
-                method: 'POST',
+    const date = parseDate(value);
 
-                headers: {
-                    'Content-Type':
-                        'text/plain;charset=utf-8'
-                },
-
-                body:
-                    JSON.stringify(payload)
-            }
-        );
-
-    if (!response.ok) {
-
-        throw new Error(
-            'Server mengembalikan HTTP ' +
-            response.status
-        );
+    if (!date || Number.isNaN(date.getTime())) {
+        return '';
     }
 
-    return await response.json();
+    const year = date.getUTCFullYear();
+    const month =
+        String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day =
+        String(date.getUTCDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+}
+
+
+function getCurrentMonth() {
+
+    const now = new Date();
+
+    const parts = new Intl.DateTimeFormat(
+        'en-CA',
+        {
+            timeZone: CONFIG.TIMEZONE,
+            year: 'numeric',
+            month: '2-digit'
+        }
+    ).formatToParts(now);
+
+    const year =
+        parts.find(p => p.type === 'year')?.value;
+
+    const month =
+        parts.find(p => p.type === 'month')?.value;
+
+    return `${year}-${month}`;
+}
+
+
+function getCurrentDate() {
+
+    const now = new Date();
+
+    const parts = new Intl.DateTimeFormat(
+        'en-CA',
+        {
+            timeZone: CONFIG.TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }
+    ).formatToParts(now);
+
+    const year =
+        parts.find(p => p.type === 'year')?.value;
+
+    const month =
+        parts.find(p => p.type === 'month')?.value;
+
+    const day =
+        parts.find(p => p.type === 'day')?.value;
+
+    return `${year}-${month}-${day}`;
 }
 
 
 /* ================================================================
-   BUILD API URL
-   ================================================================ */
+   6. ANGKA
+================================================================ */
 
-function buildApiUrl(
-    action,
-    params = {}
-) {
+function toNumber(value) {
+
+    if (value === null || value === undefined) {
+        return 0;
+    }
+
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : 0;
+    }
+
+    let stringValue = String(value)
+        .trim()
+        .replace(/[^\d,.-]/g, '');
+
+    if (!stringValue) return 0;
+
+    /*
+       Menangani:
+       1000000
+       1.000.000
+       1,000,000
+       1.000.000,50
+    */
 
     if (
-        !APP_CONFIG.API_URL ||
-        APP_CONFIG.API_URL.includes(
-            'PASTE_URL'
-        )
+        stringValue.includes('.') &&
+        stringValue.includes(',')
+    ) {
+
+        stringValue =
+            stringValue
+                .replace(/\./g, '')
+                .replace(',', '.');
+
+    } else if (
+        stringValue.includes('.') &&
+        /^\d{1,3}(\.\d{3})+$/.test(stringValue)
+    ) {
+
+        stringValue =
+            stringValue.replace(/\./g, '');
+
+    } else if (
+        stringValue.includes(',') &&
+        /^\d{1,3}(,\d{3})+$/.test(stringValue)
+    ) {
+
+        stringValue =
+            stringValue.replace(/,/g, '');
+
+    } else if (stringValue.includes(',')) {
+
+        stringValue =
+            stringValue.replace(',', '.');
+    }
+
+    const result = Number(stringValue);
+
+    return Number.isFinite(result)
+        ? result
+        : 0;
+}
+
+
+/* ================================================================
+   7. API REQUEST
+================================================================ */
+
+async function apiRequest(action, params = {}) {
+
+    if (
+        !CONFIG.API_URL ||
+        CONFIG.API_URL.includes('PASTE_URL')
     ) {
 
         throw new Error(
-            'URL Web App Google Apps Script belum diisi pada APP_CONFIG.API_URL.'
+            'URL Web App Code.gs belum diisi pada CONFIG.API_URL.'
         );
     }
 
     const url =
-        new URL(
-            APP_CONFIG.API_URL
-        );
+        new URL(CONFIG.API_URL);
 
-    url.searchParams.set(
-        'action',
-        action
-    );
+    url.searchParams.set('action', action);
 
-    Object.entries(params)
-        .forEach(function([key, value]) {
+    Object.entries(params).forEach(
+        ([key, value]) => {
 
             if (
                 value !== undefined &&
-                value !== null &&
-                value !== ''
+                value !== null
             ) {
 
                 url.searchParams.set(
                     key,
-                    value
+                    String(value)
                 );
             }
-        });
-
-    /*
-     * Cache busting.
-     */
-    url.searchParams.set(
-        '_',
-        Date.now()
+        }
     );
 
-    return url.toString();
-}
+    const controller =
+        new AbortController();
 
-
-/* ================================================================
-   RENDER EVERYTHING
-   ================================================================ */
-
-function renderEverything() {
-
-    renderDashboard();
-
-    renderIncome();
-
-    renderExpense();
-
-    renderEmployees();
-
-    renderPayroll();
-
-    renderHistory();
-
-    renderConfig();
-
-    initializeDateInputs();
-
-    setCurrentDateDefaults();
-
-    updateDescriptionCounter();
-}
-
-
-/* ================================================================
-   DASHBOARD
-   ================================================================ */
-
-function renderDashboard() {
-
-    const dashboard =
-        state.dashboard || {};
-
-    /*
-     * Total pemasukan.
-     */
-    setText(
-        [
-            'totalIncome',
-            'totalPemasukan',
-            'dashboardTotalIncome'
-        ],
-        formatRupiah(
-            dashboard.totalIncome
-        )
-    );
-
-
-    /*
-     * 30% kas.
-     */
-    setText(
-        [
-            'kasAllocation',
-            'alokasiKas',
-            'totalKas30',
-            'dashboardKasAllocation'
-        ],
-        formatRupiah(
-            dashboard.kasAllocation
-        )
-    );
-
-
-    /*
-     * Pengeluaran.
-     */
-    setText(
-        [
-            'totalExpense',
-            'totalPengeluaran',
-            'dashboardTotalExpense'
-        ],
-        formatRupiah(
-            dashboard.totalExpense
-        )
-    );
-
-
-    /*
-     * Sisa kas.
-     */
-    setText(
-        [
-            'remainingCash',
-            'sisaKas',
-            'sisaKasPokja',
-            'dashboardRemainingCash'
-        ],
-        formatRupiah(
-            dashboard.remainingCash
-        )
-    );
-
-
-    /*
-     * Dana gaji 70%.
-     */
-    setText(
-        [
-            'salaryFund',
-            'danaPenggajian',
-            'danaGaji',
-            'dashboardSalaryFund'
-        ],
-        formatRupiah(
-            dashboard.salaryFund
-        )
-    );
-
-
-    /*
-     * Gaji telah dibayarkan.
-     */
-    setText(
-        [
-            'totalSalaryPaid',
-            'totalGajiDibayar',
-            'gajiTelahDibayar'
-        ],
-        formatRupiah(
-            dashboard.totalSalaryPaid
-        )
-    );
-
-
-    /*
-     * Sisa dana gaji.
-     */
-    setText(
-        [
-            'remainingSalaryFund',
-            'sisaDanaGaji',
-            'remainingPayrollFund'
-        ],
-        formatRupiah(
-            dashboard.remainingSalaryFund
-        )
-    );
-
-
-    /*
-     * Total gaji belum dibayar.
-     */
-    setText(
-        [
-            'totalSalaryUnpaid',
-            'totalGajiBelumDibayar'
-        ],
-        formatRupiah(
-            dashboard.totalSalaryUnpaid
-        )
-    );
-
-
-    /*
-     * Jumlah pegawai.
-     */
-    setText(
-        [
-            'totalEmployees',
-            'jumlahPegawai'
-        ],
-        numberFormat(
-            dashboard.totalEmployees
-        )
-    );
-
-
-    /*
-     * Pegawai telah dibayar.
-     */
-    setText(
-        [
-            'paidEmployees',
-            'pegawaiSudahDibayar'
-        ],
-        numberFormat(
-            dashboard.paidEmployees
-        )
-    );
-
-
-    /*
-     * Pegawai belum dibayar.
-     */
-    setText(
-        [
-            'unpaidEmployees',
-            'pegawaiBelumDibayar'
-        ],
-        numberFormat(
-            dashboard.unpaidEmployees
-        )
-    );
-
-
-    /*
-     * Saldo kas status.
-     */
-    updateBalanceStatus(
-        dashboard.remainingCash
-    );
-}
-
-
-/* ================================================================
-   PEMASUKAN
-   ================================================================ */
-
-function renderIncome() {
-
-    const container =
-        getElementByIds(
-            'incomeTableBody',
-            'pemasukanTableBody',
-            'incomeList',
-            'pemasukanList'
+    const timeout =
+        setTimeout(
+            () => controller.abort(),
+            CONFIG.REQUEST_TIMEOUT
         );
 
-    if (!container) {
-        return;
-    }
+    try {
 
-    container.innerHTML = '';
-
-    if (!state.income.length) {
-
-        container.innerHTML =
-            emptyTableRow(
-                'Belum ada data pemasukan.',
-                6
+        const response =
+            await fetch(
+                url.toString(),
+                {
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-store',
+                    signal: controller.signal
+                }
             );
 
-        return;
+        if (!response.ok) {
+
+            throw new Error(
+                `Server mengembalikan HTTP ${response.status}.`
+            );
+        }
+
+        const text =
+            await response.text();
+
+        let data;
+
+        try {
+
+            data = JSON.parse(text);
+
+        } catch (error) {
+
+            console.error(
+                'Response bukan JSON:',
+                text
+            );
+
+            throw new Error(
+                'Response dari Code.gs bukan JSON yang valid.'
+            );
+        }
+
+        if (
+            data &&
+            data.success === false
+        ) {
+
+            throw new Error(
+                data.message ||
+                data.error ||
+                'Permintaan gagal diproses.'
+            );
+        }
+
+        return data;
+
+    } catch (error) {
+
+        if (error.name === 'AbortError') {
+
+            throw new Error(
+                'Koneksi ke server terlalu lama. Silakan coba lagi.'
+            );
+        }
+
+        throw error;
+
+    } finally {
+
+        clearTimeout(timeout);
     }
-
-    /*
-     * Data terbaru di atas.
-     */
-    const data =
-        [...state.income]
-            .sort(function(a, b) {
-
-                return String(
-                    b.date || ''
-                ).localeCompare(
-                    String(a.date || '')
-                );
-            });
-
-    data.forEach(function(item) {
-
-        const tr =
-            document.createElement('tr');
-
-        tr.innerHTML = `
-            <td>${escapeHtml(
-                formatDisplayDate(item.date)
-            )}</td>
-
-            <td class="money-cell">
-                ${escapeHtml(
-                    formatRupiah(item.amount)
-                )}
-            </td>
-
-            <td>
-                <span class="income-source">
-                    ${escapeHtml(
-                        item.source || '-'
-                    )}
-                </span>
-            </td>
-
-            <td class="money-cell">
-                ${escapeHtml(
-                    formatRupiah(
-                        item.kasAllocation
-                    )
-                )}
-            </td>
-
-            <td class="money-cell">
-                ${escapeHtml(
-                    formatRupiah(
-                        item.salaryAllocation
-                    )
-                )}
-            </td>
-
-            <td>
-                ${escapeHtml(
-                    item.month || '-'
-                )}
-            </td>
-        `;
-
-        container.appendChild(tr);
-    });
 }
 
 
 /* ================================================================
-   SUBMIT PEMASUKAN
-   ================================================================ */
+   8. API POST
+   Dipakai untuk operasi yang memerlukan pengiriman data.
+================================================================ */
 
-async function handleIncomeSubmit(event) {
-
-    event.preventDefault();
-
-    const form =
-        event.currentTarget;
-
-    const dateInput =
-        findFormElement(
-            form,
-            [
-                'incomeDate',
-                'tanggalPemasukan',
-                'date'
-            ]
-        );
-
-    const amountInput =
-        findFormElement(
-            form,
-            [
-                'incomeAmount',
-                'nominalPemasukan',
-                'amount'
-            ]
-        );
-
-    const sourceInput =
-        findFormElement(
-            form,
-            [
-                'incomeSource',
-                'sumberPemasukan',
-                'keteranganPemasukan',
-                'source'
-            ]
-        );
+async function apiPost(action, payload = {}) {
 
     if (
-        !dateInput ||
-        !amountInput ||
-        !sourceInput
+        !CONFIG.API_URL ||
+        CONFIG.API_URL.includes('PASTE_URL')
     ) {
 
-        showToast(
-            'Elemen formulir pemasukan belum lengkap.',
-            'error'
+        throw new Error(
+            'URL Web App Code.gs belum diisi pada CONFIG.API_URL.'
         );
+    }
+
+    const controller =
+        new AbortController();
+
+    const timeout =
+        setTimeout(
+            () => controller.abort(),
+            CONFIG.REQUEST_TIMEOUT
+        );
+
+    try {
+
+        const response =
+            await fetch(
+                CONFIG.API_URL,
+                {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type':
+                            'text/plain;charset=utf-8'
+                    },
+                    body: JSON.stringify({
+                        action,
+                        ...payload
+                    }),
+                    signal: controller.signal
+                }
+            );
+
+        if (!response.ok) {
+
+            throw new Error(
+                `Server mengembalikan HTTP ${response.status}.`
+            );
+        }
+
+        const text =
+            await response.text();
+
+        let data;
+
+        try {
+
+            data = JSON.parse(text);
+
+        } catch (error) {
+
+            console.error(
+                'Response POST bukan JSON:',
+                text
+            );
+
+            throw new Error(
+                'Response server tidak dapat dibaca.'
+            );
+        }
+
+        if (
+            data &&
+            data.success === false
+        ) {
+
+            throw new Error(
+                data.message ||
+                data.error ||
+                'Permintaan gagal.'
+            );
+        }
+
+        return data;
+
+    } catch (error) {
+
+        if (error.name === 'AbortError') {
+
+            throw new Error(
+                'Koneksi ke server terlalu lama.'
+            );
+        }
+
+        throw error;
+
+    } finally {
+
+        clearTimeout(timeout);
+    }
+}
+
+
+/* ================================================================
+   9. TOAST
+================================================================ */
+
+function showToast(
+    message,
+    type = 'info',
+    duration = 3500
+) {
+
+    const container =
+        $('toastContainer');
+
+    if (!container) {
+
+        alert(message);
 
         return;
     }
 
+    const toast =
+        document.createElement('div');
+
+    toast.className =
+        `toast toast-${type}`;
+
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+
+    toast.innerHTML = `
+        <span class="toast-icon">
+            ${icons[type] || icons.info}
+        </span>
+        <span class="toast-message">
+            ${escapeHtml(message)}
+        </span>
+        <button
+            type="button"
+            class="toast-close"
+            aria-label="Tutup"
+        >×</button>
+    `;
+
+    container.appendChild(toast);
+
+    const close =
+        toast.querySelector('.toast-close');
+
+    if (close) {
+
+        close.addEventListener(
+            'click',
+            () => removeToast(toast)
+        );
+    }
+
+    setTimeout(
+        () => removeToast(toast),
+        duration
+    );
+}
+
+
+function removeToast(toast) {
+
+    if (!toast) return;
+
+    toast.classList.add('toast-removing');
+
+    setTimeout(
+        () => toast.remove(),
+        250
+    );
+}
+
+
+/* ================================================================
+   10. HTML ESCAPE
+================================================================ */
+
+function escapeHtml(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return '';
+    }
+
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+
+/* ================================================================
+   11. LOADING
+================================================================ */
+
+function showLoader(show = true) {
+
+    const loader =
+        $('appLoader');
+
+    if (!loader) return;
+
+    if (show) {
+
+        loader.classList.remove(
+            'hidden',
+            'is-hidden'
+        );
+
+        loader.style.display = '';
+
+    } else {
+
+        loader.classList.add(
+            'hidden'
+        );
+
+        loader.style.display = 'none';
+    }
+}
+
+
+/* ================================================================
+   12. STATUS KONEKSI
+================================================================ */
+
+function setConnectionStatus(
+    connected,
+    text = ''
+) {
+
+    const dot =
+        $('connectionDot');
+
+    const status =
+        $('connectionStatus');
+
+    if (dot) {
+
+        dot.classList.toggle(
+            'connected',
+            connected
+        );
+
+        dot.classList.toggle(
+            'offline',
+            !connected
+        );
+    }
+
+    if (status) {
+
+        status.textContent =
+            text ||
+            (
+                connected
+                    ? 'Terhubung'
+                    : 'Tidak terhubung'
+            );
+    }
+}
+
+
+/* ================================================================
+   13. HEADER DATE
+================================================================ */
+
+function updateHeaderDate() {
+
     const date =
-        dateInput.value;
+        state.currentDate ||
+        getCurrentDate();
+
+    const formatted =
+        formatDateLong(date);
+
+    if ($('currentDateDisplay')) {
+
+        $('currentDateDisplay').textContent =
+            formatted;
+    }
+
+    if ($('heroDate')) {
+
+        $('heroDate').textContent =
+            formatted;
+    }
+}
+
+
+/* ================================================================
+   14. DASHBOARD
+================================================================ */
+
+async function loadDashboard() {
+
+    try {
+
+        const result =
+            await apiRequest(
+                API_ACTIONS.DASHBOARD
+            );
+
+        const dashboard =
+            result.dashboard ||
+            result.data ||
+            result;
+
+        state.dashboard =
+            dashboard || {};
+
+        updateDashboardUI();
+
+        return state.dashboard;
+
+    } catch (error) {
+
+        console.error(
+            'loadDashboard:',
+            error
+        );
+
+        throw error;
+    }
+}
+
+
+function updateDashboardUI() {
+
+    const d =
+        state.dashboard || {};
+
+    setText(
+        'totalIncome',
+        formatRupiah(
+            d.totalIncome
+        )
+    );
+
+    setText(
+        'kasAllocation',
+        formatRupiah(
+            d.kasAllocation
+        )
+    );
+
+    setText(
+        'totalExpense',
+        formatRupiah(
+            d.totalExpense
+        )
+    );
+
+    setText(
+        'remainingCash',
+        formatRupiah(
+            d.remainingCash
+        )
+    );
+
+    setText(
+        'salaryFund',
+        formatRupiah(
+            d.salaryFund
+        )
+    );
+
+    setText(
+        'totalSalaryPaid',
+        formatRupiah(
+            d.totalSalaryPaid
+        )
+    );
+
+    setText(
+        'remainingSalaryFund',
+        formatRupiah(
+            d.remainingSalaryFund
+        )
+    );
+
+    setText(
+        'totalSalaryUnpaid',
+        formatRupiah(
+            d.totalSalaryUnpaid
+        )
+    );
+
+    setText(
+        'totalEmployees',
+        formatNumber(
+            d.totalEmployees
+        )
+    );
+
+    setText(
+        'paidEmployees',
+        formatNumber(
+            d.paidEmployees
+        )
+    );
+
+    setText(
+        'unpaidEmployees',
+        formatNumber(
+            d.unpaidEmployees
+        )
+    );
+}
+
+
+/* ================================================================
+   15. PEMASUKAN
+================================================================ */
+
+async function loadIncome() {
+
+    try {
+
+        const result =
+            await apiRequest(
+                API_ACTIONS.GET_INCOME
+            );
+
+        state.income =
+            normalizeArray(
+                result,
+                [
+                    'income',
+                    'data',
+                    'rows',
+                    'pemasukan'
+                ]
+            );
+
+        renderIncomeTable();
+
+        return state.income;
+
+    } catch (error) {
+
+        console.error(
+            'loadIncome:',
+            error
+        );
+
+        state.income = [];
+
+        renderIncomeTable();
+
+        throw error;
+    }
+}
+
+
+async function addIncome() {
+
+    const date =
+        $('incomeDate')?.value;
 
     const amount =
-        parseCurrencyInput(
-            amountInput.value
+        toNumber(
+            $('incomeAmount')?.value
         );
 
     const source =
-        sourceInput.value.trim();
+        $('incomeSource')?.value?.trim();
 
     if (!date) {
 
@@ -1018,65 +1017,81 @@ async function handleIncomeSubmit(event) {
             'warning'
         );
 
-        dateInput.focus();
-
-        return;
+        return false;
     }
 
-    if (
-        !amount ||
-        amount <= 0
-    ) {
+    if (amount <= 0) {
 
         showToast(
-            'Nominal pemasukan harus lebih besar dari 0.',
+            'Nominal pemasukan harus lebih dari 0.',
             'warning'
         );
 
-        amountInput.focus();
-
-        return;
+        return false;
     }
 
-    if (
-        !getIncomeSources()
-            .includes(source)
-    ) {
+    if (!source) {
 
         showToast(
-            'Pilih keterangan pemasukan yang tersedia.',
+            'Sumber dana wajib dipilih.',
             'warning'
         );
 
-        sourceInput.focus();
-
-        return;
+        return false;
     }
 
-    setFormBusy(
+    const form =
+        $('incomeForm');
+
+    setFormLoading(
         form,
         true
     );
 
     try {
 
-        const result =
-            await apiPost({
+        const payload = {
+            date,
+            tanggal: date,
+            amount,
+            nominal: amount,
+            nominalPemasukan: amount,
+            source,
+            sumberDana: source
+        };
 
-                action:
-                    'addIncome',
+        let result;
 
-                date:
-                    date,
+        /*
+           POST adalah metode utama.
+        */
 
-                amount:
-                    amount,
+        try {
 
-                source:
-                    source
-            });
+            result =
+                await apiPost(
+                    API_ACTIONS.ADD_INCOME,
+                    payload
+                );
 
-        if (!result.success) {
+        } catch (postError) {
+
+            /*
+               Fallback GET jika Code.gs menggunakan
+               parameter query untuk menyimpan data.
+            */
+
+            result =
+                await apiRequest(
+                    API_ACTIONS.ADD_INCOME,
+                    payload
+                );
+        }
+
+        if (
+            result &&
+            result.success === false
+        ) {
 
             throw new Error(
                 result.message ||
@@ -1085,19 +1100,22 @@ async function handleIncomeSubmit(event) {
         }
 
         showToast(
-            result.message ||
             'Pemasukan berhasil disimpan.',
             'success'
         );
 
-        form.reset();
+        resetIncomeForm();
 
-        setCurrentDateDefaults();
+        await refreshAll(
+            false,
+            [
+                'income',
+                'dashboard',
+                'cash'
+            ]
+        );
 
-        /*
-         * Ambil data terbaru.
-         */
-        await loadAppData();
+        return true;
 
     } catch (error) {
 
@@ -1107,13 +1125,16 @@ async function handleIncomeSubmit(event) {
         );
 
         showToast(
-            getErrorMessage(error),
+            error.message ||
+            'Gagal menyimpan pemasukan.',
             'error'
         );
 
+        return false;
+
     } finally {
 
-        setFormBusy(
+        setFormLoading(
             form,
             false
         );
@@ -1121,149 +1142,215 @@ async function handleIncomeSubmit(event) {
 }
 
 
-/* ================================================================
-   PENGELUARAN
-   ================================================================ */
+function renderIncomeTable() {
 
-function renderExpense() {
+    const tbody =
+        $('incomeTableBody');
 
-    const container =
-        getElementByIds(
-            'expenseTableBody',
-            'pengeluaranTableBody',
-            'expenseList',
-            'pengeluaranList'
+    if (!tbody) return;
+
+    if (!state.income.length) {
+
+        tbody.innerHTML = emptyTableRow(
+            'Belum ada data pemasukan.',
+            6
         );
 
-    if (!container) {
         return;
     }
 
-    container.innerHTML = '';
+    tbody.innerHTML =
+        state.income.map(
+            (item, index) => {
 
-    if (!state.expense.length) {
+                const date =
+                    pick(
+                        item,
+                        [
+                            'date',
+                            'tanggal',
+                            'Tanggal'
+                        ]
+                    );
 
-        container.innerHTML =
-            emptyTableRow(
-                'Belum ada data pengeluaran.',
-                4
-            );
+                const amount =
+                    toNumber(
+                        pick(
+                            item,
+                            [
+                                'amount',
+                                'nominal',
+                                'nominalPemasukan',
+                                'Nominal Pemasukan'
+                            ]
+                        )
+                    );
 
-        return;
+                const source =
+                    pick(
+                        item,
+                        [
+                            'source',
+                            'sumberDana',
+                            'sumber',
+                            'Sumber Dana'
+                        ]
+                    ) || '-';
+
+                const kas =
+                    pick(
+                        item,
+                        [
+                            'kas',
+                            'kasAllocation',
+                            'alokasiKas',
+                            '30% Kas Pokja'
+                        ]
+                    );
+
+                const salary =
+                    pick(
+                        item,
+                        [
+                            'salary',
+                            'salaryFund',
+                            'alokasiGaji',
+                            '70% Penggajian'
+                        ]
+                    );
+
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${escapeHtml(
+                            formatDateDisplay(date)
+                        )}</td>
+                        <td class="money-cell">
+                            ${formatRupiah(amount)}
+                        </td>
+                        <td>${escapeHtml(source)}</td>
+                        <td class="money-cell">
+                            ${formatRupiah(
+                                kas !== undefined
+                                    ? kas
+                                    : amount * 0.30
+                            )}
+                        </td>
+                        <td class="money-cell">
+                            ${formatRupiah(
+                                salary !== undefined
+                                    ? salary
+                                    : amount * 0.70
+                            )}
+                        </td>
+                    </tr>
+                `;
+            }
+        ).join('');
+}
+
+
+function resetIncomeForm() {
+
+    const form =
+        $('incomeForm');
+
+    if (form) {
+        form.reset();
     }
 
-    const data =
-        [...state.expense]
-            .sort(function(a, b) {
+    setDefaultDates();
 
-                return String(
-                    b.date || ''
-                ).localeCompare(
-                    String(a.date || '')
-                );
-            });
-
-    data.forEach(function(item) {
-
-        const tr =
-            document.createElement('tr');
-
-        tr.innerHTML = `
-            <td>
-                ${escapeHtml(
-                    formatDisplayDate(item.date)
-                )}
-            </td>
-
-            <td class="money-cell">
-                ${escapeHtml(
-                    formatRupiah(item.amount)
-                )}
-            </td>
-
-            <td class="description-cell">
-                ${escapeHtml(
-                    item.description || '-'
-                )}
-            </td>
-
-            <td>
-                ${escapeHtml(
-                    item.month || '-'
-                )}
-            </td>
-        `;
-
-        container.appendChild(tr);
-    });
+    updateIncomePreview();
 }
 
 
 /* ================================================================
-   SUBMIT PENGELUARAN
-   ================================================================ */
+   16. PREVIEW PEMASUKAN
+================================================================ */
 
-async function handleExpenseSubmit(event) {
-
-    event.preventDefault();
-
-    const form =
-        event.currentTarget;
-
-    const dateInput =
-        findFormElement(
-            form,
-            [
-                'expenseDate',
-                'tanggalPengeluaran',
-                'date'
-            ]
-        );
-
-    const amountInput =
-        findFormElement(
-            form,
-            [
-                'expenseAmount',
-                'nominalPengeluaran',
-                'amount'
-            ]
-        );
-
-    const descriptionInput =
-        findFormElement(
-            form,
-            [
-                'expenseDescription',
-                'deskripsiPengeluaran',
-                'description'
-            ]
-        );
-
-    if (
-        !dateInput ||
-        !amountInput ||
-        !descriptionInput
-    ) {
-
-        showToast(
-            'Elemen formulir pengeluaran belum lengkap.',
-            'error'
-        );
-
-        return;
-    }
-
-    const date =
-        dateInput.value;
+function updateIncomePreview() {
 
     const amount =
-        parseCurrencyInput(
-            amountInput.value
+        toNumber(
+            $('incomeAmount')?.value
+        );
+
+    const kas =
+        amount * 0.30;
+
+    const salary =
+        amount * 0.70;
+
+    setText(
+        'incomeKasPreview',
+        formatRupiah(kas)
+    );
+
+    setText(
+        'incomeSalaryPreview',
+        formatRupiah(salary)
+    );
+}
+
+
+/* ================================================================
+   17. PENGELUARAN
+================================================================ */
+
+async function loadExpense() {
+
+    try {
+
+        const result =
+            await apiRequest(
+                API_ACTIONS.GET_EXPENSE
+            );
+
+        state.expense =
+            normalizeArray(
+                result,
+                [
+                    'expense',
+                    'expenses',
+                    'data',
+                    'rows',
+                    'pengeluaran'
+                ]
+            );
+
+        renderExpenseTable();
+
+        return state.expense;
+
+    } catch (error) {
+
+        console.error(
+            'loadExpense:',
+            error
+        );
+
+        state.expense = [];
+
+        renderExpenseTable();
+
+        throw error;
+    }
+}
+
+
+async function addExpense() {
+
+    const date =
+        $('expenseDate')?.value;
+
+    const amount =
+        toNumber(
+            $('expenseAmount')?.value
         );
 
     const description =
-        descriptionInput.value.trim();
+        $('expenseDescription')?.value?.trim();
 
     if (!date) {
 
@@ -1272,33 +1359,18 @@ async function handleExpenseSubmit(event) {
             'warning'
         );
 
-        dateInput.focus();
-
-        return;
+        return false;
     }
 
-    if (
-        !amount ||
-        amount <= 0
-    ) {
+    if (amount <= 0) {
 
         showToast(
-            'Nominal pengeluaran harus lebih besar dari 0.',
+            'Nominal pengeluaran harus lebih dari 0.',
             'warning'
         );
 
-        amountInput.focus();
-
-        return;
+        return false;
     }
-
-    const wordCount =
-        countWords(
-            description
-        );
-
-    const maxWords =
-        getMaxDescriptionWords();
 
     if (!description) {
 
@@ -1307,75 +1379,87 @@ async function handleExpenseSubmit(event) {
             'warning'
         );
 
-        descriptionInput.focus();
-
-        return;
+        return false;
     }
+
+    const wordCount =
+        countWords(description);
 
     if (
         wordCount >
-        maxWords
+        CONFIG.MAX_EXPENSE_WORDS
     ) {
 
         showToast(
-            `Deskripsi maksimal ${maxWords} kata. Saat ini ${wordCount} kata.`,
+            `Deskripsi maksimal ${CONFIG.MAX_EXPENSE_WORDS} kata.`,
             'warning'
         );
 
-        descriptionInput.focus();
-
-        return;
+        return false;
     }
 
-    /*
-     * Cek cepat di frontend.
-     *
-     * Backend tetap melakukan validasi final.
-     */
     const remainingCash =
-        Number(
-            state.dashboard?.remainingCash || 0
+        toNumber(
+            state.dashboard.remainingCash
         );
 
     if (
-        amount >
-        remainingCash
+        remainingCash > 0 &&
+        amount > remainingCash
     ) {
 
         showToast(
-            'Nominal melebihi sisa Kas Pokja.',
+            'Nominal pengeluaran melebihi sisa kas Pokja.',
             'warning'
         );
 
-        amountInput.focus();
-
-        return;
+        return false;
     }
 
-    setFormBusy(
+    const form =
+        $('expenseForm');
+
+    setFormLoading(
         form,
         true
     );
 
     try {
 
-        const result =
-            await apiPost({
+        const payload = {
+            date,
+            tanggal: date,
+            amount,
+            nominal: amount,
+            nominalPengeluaran: amount,
+            description,
+            deskripsi: description,
+            deskripsiPengeluaran: description
+        };
 
-                action:
-                    'addExpense',
+        let result;
 
-                date:
-                    date,
+        try {
 
-                amount:
-                    amount,
+            result =
+                await apiPost(
+                    API_ACTIONS.ADD_EXPENSE,
+                    payload
+                );
 
-                description:
-                    description
-            });
+        } catch (postError) {
 
-        if (!result.success) {
+            result =
+                await apiRequest(
+                    API_ACTIONS.ADD_EXPENSE,
+                    payload
+                );
+        }
+
+        if (
+            result &&
+            result.success === false
+        ) {
 
             throw new Error(
                 result.message ||
@@ -1384,18 +1468,23 @@ async function handleExpenseSubmit(event) {
         }
 
         showToast(
-            result.message ||
             'Pengeluaran berhasil disimpan.',
             'success'
         );
 
-        form.reset();
+        resetExpenseForm();
 
-        setCurrentDateDefaults();
+        await refreshAll(
+            false,
+            [
+                'expense',
+                'dashboard',
+                'cash',
+                'history'
+            ]
+        );
 
-        updateDescriptionCounter();
-
-        await loadAppData();
+        return true;
 
     } catch (error) {
 
@@ -1405,13 +1494,16 @@ async function handleExpenseSubmit(event) {
         );
 
         showToast(
-            getErrorMessage(error),
+            error.message ||
+            'Gagal menyimpan pengeluaran.',
             'error'
         );
 
+        return false;
+
     } finally {
 
-        setFormBusy(
+        setFormLoading(
             form,
             false
         );
@@ -1419,155 +1511,177 @@ async function handleExpenseSubmit(event) {
 }
 
 
-/* ================================================================
-   PEGAWAI
-   ================================================================ */
+function renderExpenseTable() {
 
-function renderEmployees() {
+    const tbody =
+        $('expenseTableBody');
 
-    const container =
-        getElementByIds(
-            'employeeTableBody',
-            'pegawaiTableBody',
-            'employeeList',
-            'pegawaiList'
+    if (!tbody) return;
+
+    if (!state.expense.length) {
+
+        tbody.innerHTML = emptyTableRow(
+            'Belum ada data pengeluaran.',
+            4
         );
 
-    if (!container) {
         return;
     }
 
-    container.innerHTML = '';
+    tbody.innerHTML =
+        state.expense.map(
+            (item, index) => {
 
-    if (!state.employees.length) {
+                const date =
+                    pick(
+                        item,
+                        [
+                            'date',
+                            'tanggal',
+                            'Tanggal'
+                        ]
+                    );
 
-        container.innerHTML =
-            emptyTableRow(
-                'Data pegawai belum tersedia.',
-                5
-            );
+                const amount =
+                    toNumber(
+                        pick(
+                            item,
+                            [
+                                'amount',
+                                'nominal',
+                                'nominalPengeluaran',
+                                'Nominal Pengeluaran'
+                            ]
+                        )
+                    );
 
-        return;
+                const description =
+                    pick(
+                        item,
+                        [
+                            'description',
+                            'deskripsi',
+                            'deskripsiPengeluaran',
+                            'Deskripsi Pengeluaran'
+                        ]
+                    ) || '-';
+
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${escapeHtml(
+                            formatDateDisplay(date)
+                        )}</td>
+                        <td class="money-cell">
+                            ${formatRupiah(amount)}
+                        </td>
+                        <td>
+                            <div class="description-cell">
+                                ${escapeHtml(description)}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        ).join('');
+}
+
+
+/* ================================================================
+   18. HITUNG KATA
+================================================================ */
+
+function countWords(text) {
+
+    if (!text || !text.trim()) {
+        return 0;
     }
 
-    state.employees.forEach(function(employee) {
-
-        const tr =
-            document.createElement('tr');
-
-        tr.innerHTML = `
-            <td>
-                ${escapeHtml(
-                    employee.no ?? '-'
-                )}
-            </td>
-
-            <td>
-                ${escapeHtml(
-                    employee.position || '-'
-                )}
-            </td>
-
-            <td>
-                ${escapeHtml(
-                    employee.name || 'Belum diisi'
-                )}
-            </td>
-
-            <td class="points-cell">
-                ${escapeHtml(
-                    numberFormat(employee.points)
-                )}
-            </td>
-
-            <td>
-                ${
-                    employee.filled
-                        ? '<span class="status status-ready">Aktif</span>'
-                        : '<span class="status status-empty">Belum diisi</span>'
-                }
-            </td>
-        `;
-
-        container.appendChild(tr);
-    });
+    return text
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .length;
+}
 
 
-    setText(
-        [
-            'employeeTotalPoints',
-            'totalPoinPegawai'
-        ],
-        numberFormat(
-            state.employees.reduce(
-                function(total, employee) {
-                    return total +
-                        Number(employee.points || 0);
-                },
-                0
-            )
-        )
+function updateDescriptionCounter() {
+
+    const textarea =
+        $('expenseDescription');
+
+    const counter =
+        $('descriptionCounter');
+
+    const wordDisplay =
+        $('descriptionWordCount');
+
+    if (!textarea) return;
+
+    const count =
+        countWords(textarea.value);
+
+    if (counter) {
+
+        counter.textContent =
+            `${count}/${CONFIG.MAX_EXPENSE_WORDS} kata`;
+    }
+
+    if (wordDisplay) {
+
+        wordDisplay.textContent =
+            `${count} kata`;
+    }
+
+    textarea.classList.toggle(
+        'is-invalid',
+        count > CONFIG.MAX_EXPENSE_WORDS
     );
 }
 
 
 /* ================================================================
-   PAYROLL
-   ================================================================ */
+   19. PENGGAJIAN
+================================================================ */
 
-async function handlePayrollMonthChange(event) {
+async function loadPayroll(
+    month = state.currentMonth
+) {
 
-    const month =
-        event.target.value;
+    const selectedMonth =
+        month ||
+        getCurrentMonth();
 
-    if (!month) {
-        return;
-    }
-
-    await loadPayroll(
-        month
-    );
-}
-
-
-async function loadPayroll(month) {
+    state.currentMonth =
+        selectedMonth;
 
     try {
 
         const result =
-            await apiGet(
-                'getPayroll',
+            await apiRequest(
+                API_ACTIONS.GET_PAYROLL,
                 {
-                    month:
-                        month
+                    month: selectedMonth,
+                    bulan: selectedMonth
                 }
             );
 
-        if (!result.success) {
-
-            throw new Error(
-                result.message ||
-                'Data penggajian gagal diambil.'
-            );
-        }
-
-        state.currentPayrollMonth =
-            result.month ||
-            month;
-
         state.payroll =
-            Array.isArray(result.data)
-                ? result.data
-                : [];
+            normalizeArray(
+                result,
+                [
+                    'payroll',
+                    'data',
+                    'rows',
+                    'penggajian'
+                ]
+            );
 
-        renderPayroll();
+        updatePayrollSummary();
 
-        /*
-         * Update ringkasan berdasarkan data payroll terbaru.
-         */
-        await refreshDashboardOnlySafe();
+        renderPayrollTable();
 
-        return result;
+        return state.payroll;
 
     } catch (error) {
 
@@ -1576,468 +1690,594 @@ async function loadPayroll(month) {
             error
         );
 
-        showToast(
-            getErrorMessage(error),
-            'error'
-        );
+        state.payroll = [];
+
+        updatePayrollSummary();
+
+        renderPayrollTable();
 
         throw error;
     }
 }
 
 
-function renderPayroll() {
+function renderPayrollTable() {
 
-    const container =
-        getElementByIds(
-            'payrollTableBody',
-            'penggajianTableBody',
-            'salaryTableBody',
-            'payrollList',
-            'penggajianList'
-        );
+    const tbody =
+        $('payrollTableBody');
 
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = '';
-
-    /*
-     * Set bulan input.
-     */
-    const monthInput =
-        getElementByIds(
-            'payrollMonth',
-            'bulanPenggajian',
-            'salaryMonth'
-        );
-
-    if (
-        monthInput &&
-        state.currentPayrollMonth
-    ) {
-
-        monthInput.value =
-            state.currentPayrollMonth;
-    }
-
+    if (!tbody) return;
 
     if (!state.payroll.length) {
 
-        container.innerHTML =
-            emptyTableRow(
-                'Data penggajian belum tersedia.',
-                8
-            );
-
-        renderPayrollSummary();
+        tbody.innerHTML = emptyTableRow(
+            'Belum ada data penggajian untuk bulan ini.',
+            10
+        );
 
         return;
     }
 
+    tbody.innerHTML =
+        state.payroll.map(
+            (item, index) => {
 
-    state.payroll.forEach(function(item) {
+                const position =
+                    pick(
+                        item,
+                        [
+                            'position',
+                            'jabatan',
+                            'Jabatan'
+                        ]
+                    ) || '-';
 
-        const tr =
-            document.createElement('tr');
+                const name =
+                    pick(
+                        item,
+                        [
+                            'name',
+                            'nama',
+                            'namaPegawai',
+                            'Nama Pegawai'
+                        ]
+                    ) || '';
 
-        const isPaid =
-            Boolean(item.paid) ||
-            String(
-                item.status || ''
-            ).toUpperCase() ===
-            'SUDAH DIBAYAR';
+                const points =
+                    toNumber(
+                        pick(
+                            item,
+                            [
+                                'points',
+                                'point',
+                                'poin',
+                                'Poin'
+                            ]
+                        )
+                    );
 
-        const hasName =
-            Boolean(
-                item.name &&
-                item.name.trim()
-            );
+                const salary =
+                    toNumber(
+                        pick(
+                            item,
+                            [
+                                'salary',
+                                'gaji',
+                                'Gaji'
+                            ]
+                        )
+                    );
 
-        const canPay =
-            hasName &&
-            Number(item.salary || 0) > 0 &&
-            !isPaid &&
-            item.row;
+                const status =
+                    pick(
+                        item,
+                        [
+                            'status',
+                            'Status'
+                        ]
+                    ) || '';
 
-
-        tr.innerHTML = `
-
-            <td>
-                ${escapeHtml(
-                    item.position || '-'
-                )}
-            </td>
-
-            <td class="employee-name-cell">
-                ${escapeHtml(
-                    item.name ||
-                    'Nama belum diisi'
-                )}
-            </td>
-
-            <td class="points-cell">
-                ${escapeHtml(
-                    numberFormat(item.points)
-                )}
-            </td>
-
-            <td class="money-cell">
-                ${escapeHtml(
-                    formatRupiah(item.salary)
-                )}
-            </td>
-
-            <td>
-                <span class="${getPayrollStatusClass(item)}">
-                    ${escapeHtml(
-                        getPayrollStatusText(item)
-                    )}
-                </span>
-            </td>
-
-            <td class="payment-date-cell">
-                ${escapeHtml(
-                    item.paymentDate || '-'
-                )}
-            </td>
-
-            <td class="pay-action-cell">
-
-                ${
-                    canPay
-                    ?
-                    `
-                    <button
-                        type="button"
-                        class="btn-pay-salary"
-                        data-pay-salary="true"
-                        data-row="${escapeHtml(item.row)}"
-                        data-month="${escapeHtml(item.month || state.currentPayrollMonth)}"
-                        data-name="${escapeHtml(item.name)}"
-                        data-salary="${escapeHtml(item.salary)}"
-                    >
-                        💰 BAYAR GAJI
-                    </button>
-                    `
-                    :
+                const paymentStatus =
+                    pick(
+                        item,
+                        [
+                            'paymentStatus',
+                            'statusPembayaran',
+                            'Status Pembayaran'
+                        ]
+                    ) ||
                     (
-                        isPaid
-                        ?
-                        `
-                        <span class="paid-badge">
-                            ✓ SUDAH DIBAYAR
-                        </span>
-                        `
-                        :
-                        `
-                        <span class="pay-disabled">
-                            Belum tersedia
-                        </span>
-                        `
-                    )
-                }
+                        isPaid(item)
+                            ? 'SUDAH DIBAYAR'
+                            : 'BELUM DIBAYAR'
+                    );
 
-            </td>
-        `;
+                const paymentDate =
+                    pick(
+                        item,
+                        [
+                            'paymentDate',
+                            'tanggalBayar',
+                            'Tanggal Bayar'
+                        ]
+                    );
 
-        container.appendChild(tr);
-    });
+                const month =
+                    pick(
+                        item,
+                        [
+                            'month',
+                            'bulan',
+                            'Bulan'
+                        ]
+                    ) ||
+                    state.currentMonth;
 
-    renderPayrollSummary();
+                const paid =
+                    isPaid(item);
+
+                const canPay =
+                    !!name &&
+                    salary > 0 &&
+                    !paid;
+
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+
+                        <td>
+                            ${escapeHtml(position)}
+                        </td>
+
+                        <td>
+                            <strong>
+                                ${escapeHtml(
+                                    name || 'Nama belum diisi'
+                                )}
+                            </strong>
+                        </td>
+
+                        <td class="number-cell">
+                            ${formatNumber(points)}
+                        </td>
+
+                        <td class="money-cell">
+                            ${formatRupiah(salary)}
+                        </td>
+
+                        <td>
+                            <span class="${statusClass(
+                                paymentStatus
+                            )}">
+                                ${escapeHtml(
+                                    paymentStatus
+                                )}
+                            </span>
+                        </td>
+
+                        <td>
+                            ${
+                                paymentDate
+                                    ? escapeHtml(
+                                        formatDateDisplay(
+                                            paymentDate
+                                        )
+                                      )
+                                    : '-'
+                            }
+                        </td>
+
+                        <td>
+                            ${
+                                canPay
+                                    ? `
+                                        <button
+                                            type="button"
+                                            class="pay-salary-button"
+                                            data-index="${index}"
+                                            onclick="openSalaryPaymentByIndex(${index})"
+                                        >
+                                            💰 BAYAR GAJI
+                                        </button>
+                                      `
+                                    : paid
+                                        ? `
+                                            <span class="paid-badge">
+                                                ✓ LUNAS
+                                            </span>
+                                          `
+                                        : `
+                                            <span class="disabled-pay">
+                                                Belum siap
+                                            </span>
+                                          `
+                            }
+                        </td>
+                    </tr>
+                `;
+            }
+        ).join('');
 }
 
 
-/* ================================================================
-   PAYROLL SUMMARY
-   ================================================================ */
+function updatePayrollSummary() {
 
-function renderPayrollSummary() {
-
-    const data =
+    const rows =
         state.payroll || [];
 
-    const active =
-        data.filter(function(item) {
-            return Boolean(
-                item.name &&
-                item.name.trim()
-            );
-        });
+    let totalPoints = 0;
+    let totalSalary = 0;
+    let paidSalary = 0;
+    let unpaidSalary = 0;
+    let paidCount = 0;
+    let unpaidCount = 0;
 
-    const paid =
-        active.filter(function(item) {
+    rows.forEach(item => {
 
-            return (
-                item.paid ||
-                String(
-                    item.status || ''
-                ).toUpperCase() ===
-                'SUDAH DIBAYAR'
-            );
-
-        });
-
-    const unpaid =
-        active.filter(function(item) {
-
-            return !(
-                item.paid ||
-                String(
-                    item.status || ''
-                ).toUpperCase() ===
-                'SUDAH DIBAYAR'
+        const points =
+            toNumber(
+                pick(
+                    item,
+                    [
+                        'points',
+                        'point',
+                        'poin',
+                        'Poin'
+                    ]
+                )
             );
 
-        });
+        const salary =
+            toNumber(
+                pick(
+                    item,
+                    [
+                        'salary',
+                        'gaji',
+                        'Gaji'
+                    ]
+                )
+            );
 
+        totalPoints += points;
+        totalSalary += salary;
 
-    const totalSalary =
-        active.reduce(
-            function(total, item) {
-                return total +
-                    Number(item.salary || 0);
-            },
-            0
-        );
+        if (isPaid(item)) {
 
+            paidSalary += salary;
+            paidCount++;
 
-    const totalPaid =
-        paid.reduce(
-            function(total, item) {
-                return total +
-                    Number(item.salary || 0);
-            },
-            0
-        );
+        } else {
 
+            unpaidSalary += salary;
+            unpaidCount++;
+        }
+    });
 
-    const totalUnpaid =
-        unpaid.reduce(
-            function(total, item) {
-                return total +
-                    Number(item.salary || 0);
-            },
-            0
-        );
+    const salaryFund =
+        rows.length
+            ? toNumber(
+                pick(
+                    rows[0],
+                    [
+                        'salaryFund',
+                        'fund',
+                        'danaPenggajian',
+                        'Dana 70% Penggajian'
+                    ]
+                )
+              )
+            : toNumber(
+                state.dashboard.salaryFund
+            );
 
-
-    setText(
-        [
-            'payrollTotal',
-            'totalGajiBulanIni',
-            'totalSalary'
-        ],
-        formatRupiah(
-            totalSalary
-        )
-    );
-
-
-    setText(
-        [
-            'payrollPaid',
-            'gajiBulanSudahDibayar'
-        ],
-        formatRupiah(
-            totalPaid
-        )
-    );
-
+    const valuePerPoint =
+        totalPoints > 0
+            ? salaryFund / totalPoints
+            : 0;
 
     setText(
-        [
-            'payrollUnpaid',
-            'gajiBulanBelumDibayar'
-        ],
-        formatRupiah(
-            totalUnpaid
-        )
+        'salaryFundMonth',
+        formatRupiah(salaryFund)
     );
-
 
     setText(
-        [
-            'payrollPaidCount',
-            'jumlahPegawaiDibayar'
-        ],
-        numberFormat(
-            paid.length
-        )
+        'payrollTotalPoints',
+        formatNumber(totalPoints)
     );
-
 
     setText(
-        [
-            'payrollUnpaidCount',
-            'jumlahPegawaiBelumDibayar'
-        ],
-        numberFormat(
-            unpaid.length
-        )
+        'valuePerPoint',
+        formatRupiah(valuePerPoint)
     );
 
+    setText(
+        'payrollTotal',
+        formatRupiah(totalSalary)
+    );
 
-    /*
-     * Nilai 1 poin.
-     */
-    const first =
-        data[0];
+    setText(
+        'payrollPaid',
+        formatRupiah(paidSalary)
+    );
 
-    if (first) {
+    setText(
+        'payrollUnpaid',
+        formatRupiah(unpaidSalary)
+    );
 
-        setText(
-            [
-                'valuePerPoint',
-                'nilaiSatuPoin'
-            ],
-            formatRupiah(
-                first.valuePerPoint
-            )
-        );
+    setText(
+        'payrollPaidCount',
+        formatNumber(paidCount)
+    );
 
-        setText(
-            [
-                'salaryFundMonth',
-                'danaGajiBulan'
-            ],
-            formatRupiah(
-                first.salaryFund
-            )
-        );
-
-        setText(
-            [
-                'payrollTotalPoints',
-                'totalPoinPenggajian'
-            ],
-            numberFormat(
-                first.totalPoints
-            )
-        );
-    }
+    setText(
+        'payrollUnpaidCount',
+        formatNumber(unpaidCount)
+    );
 }
 
 
 /* ================================================================
-   BAYAR GAJI
-   ================================================================ */
+   20. MODAL BAYAR GAJI
+================================================================ */
 
-async function handlePaySalary(button) {
+function openSalaryPaymentByIndex(index) {
 
-    const row =
-        Number(
-            button.dataset.row
-        );
+    const employee =
+        state.payroll[index];
 
-    const name =
-        button.dataset.name ||
-        'pegawai';
-
-    const month =
-        button.dataset.month ||
-        state.currentPayrollMonth;
-
-    const salary =
-        Number(
-            button.dataset.salary || 0
-        );
-
-
-    if (!row) {
+    if (!employee) {
 
         showToast(
-            'Baris penggajian tidak ditemukan.',
+            'Data pegawai tidak ditemukan.',
             'error'
         );
 
         return;
     }
 
-
-    /*
-     * Cari data lokal.
-     */
-    const employee =
-        state.payroll.find(
-            function(item) {
-
-                return Number(item.row) === row;
-
-            }
-        );
-
-
-    if (
-        employee &&
-        employee.paid
-    ) {
+    if (isPaid(employee)) {
 
         showToast(
-            'Gaji pegawai ini sudah dibayarkan.',
+            'Gaji pegawai ini sudah dibayar.',
+            'info'
+        );
+
+        return;
+    }
+
+    const name =
+        pick(
+            employee,
+            [
+                'name',
+                'nama',
+                'namaPegawai',
+                'Nama Pegawai'
+            ]
+        ) || '-';
+
+    const salary =
+        toNumber(
+            pick(
+                employee,
+                [
+                    'salary',
+                    'gaji',
+                    'Gaji'
+                ]
+            )
+        );
+
+    const month =
+        pick(
+            employee,
+            [
+                'month',
+                'bulan',
+                'Bulan'
+            ]
+        ) ||
+        state.currentMonth;
+
+    state.selectedSalary = {
+        ...employee,
+        _index: index,
+        _name: name,
+        _salary: salary,
+        _month: month
+    };
+
+    setText(
+        'confirmEmployeeName',
+        name
+    );
+
+    setText(
+        'confirmSalaryAmount',
+        formatRupiah(salary)
+    );
+
+    setText(
+        'confirmSalaryMonth',
+        formatMonth(month)
+    );
+
+    openConfirmModal();
+}
+
+
+function openConfirmModal() {
+
+    const modal =
+        $('confirmModal');
+
+    if (!modal) return;
+
+    modal.classList.add(
+        'active',
+        'show'
+    );
+
+    modal.removeAttribute(
+        'aria-hidden'
+    );
+
+    document.body.classList.add(
+        'modal-open'
+    );
+}
+
+
+function closeConfirmModal() {
+
+    const modal =
+        $('confirmModal');
+
+    if (!modal) return;
+
+    modal.classList.remove(
+        'active',
+        'show'
+    );
+
+    modal.setAttribute(
+        'aria-hidden',
+        'true'
+    );
+
+    document.body.classList.remove(
+        'modal-open'
+    );
+
+    state.selectedSalary =
+        null;
+}
+
+
+async function confirmSalaryPayment() {
+
+    const selected =
+        state.selectedSalary;
+
+    if (!selected) {
+
+        showToast(
+            'Tidak ada pembayaran yang dipilih.',
             'warning'
         );
 
-        return;
+        return false;
     }
 
+    const name =
+        selected._name;
 
-    const confirmed =
-        await confirmPayment(
-            name,
-            salary,
-            month
+    const salary =
+        selected._salary;
+
+    const month =
+        selected._month;
+
+    if (!name) {
+
+        showToast(
+            'Nama pegawai belum tersedia.',
+            'warning'
         );
 
-    if (!confirmed) {
-        return;
+        return false;
     }
 
+    if (salary <= 0) {
 
-    setButtonBusy(
-        button,
-        true,
-        'Memproses...'
+        showToast(
+            'Nominal gaji tidak valid.',
+            'warning'
+        );
+
+        return false;
+    }
+
+    const confirmButton =
+        $('confirmModalConfirm');
+
+    setButtonLoading(
+        confirmButton,
+        true
     );
-
 
     try {
 
-        const result =
-            await apiPost({
+        const payload = {
 
-                action:
-                    'paySalary',
+            month,
+            bulan: month,
 
-                row:
-                    row,
+            name,
+            nama: name,
+            namaPegawai: name,
 
-                month:
-                    month
-            });
+            salary,
+            gaji: salary,
 
+            row:
+                selected.row ||
+                selected.rowNumber ||
+                selected._row ||
+                '',
 
-        if (!result.success) {
+            index:
+                selected._index,
 
-            /*
-             * Backend bisa mengembalikan
-             * alreadyPaid=true.
-             */
-            if (result.alreadyPaid) {
+            position:
+                pick(
+                    selected,
+                    [
+                        'position',
+                        'jabatan',
+                        'Jabatan'
+                    ]
+                ) || '',
 
-                showToast(
-                    result.message ||
-                    'Gaji sudah dibayarkan.',
-                    'warning'
+            points:
+                toNumber(
+                    pick(
+                        selected,
+                        [
+                            'points',
+                            'point',
+                            'poin',
+                            'Poin'
+                        ]
+                    )
+                )
+        };
+
+        let result;
+
+        try {
+
+            result =
+                await apiPost(
+                    API_ACTIONS.PAY_SALARY,
+                    payload
                 );
 
-                await loadPayroll(
-                    month
-                );
+        } catch (postError) {
 
-                return;
-            }
+            result =
+                await apiRequest(
+                    API_ACTIONS.PAY_SALARY,
+                    payload
+                );
+        }
+
+        if (
+            result &&
+            result.success === false
+        ) {
 
             throw new Error(
                 result.message ||
@@ -2045,56 +2285,44 @@ async function handlePaySalary(button) {
             );
         }
 
+        closeConfirmModal();
 
         showToast(
-            result.message ||
-            `Gaji ${name} berhasil dibayarkan.`,
+            `Gaji ${name} berhasil dibayar.`,
             'success'
         );
 
-
-        /*
-         * Reload payroll agar status dan
-         * tanggal pembayaran langsung berubah.
-         */
-        await loadPayroll(
-            month
+        await refreshAll(
+            false,
+            [
+                'payroll',
+                'dashboard',
+                'cash',
+                'history'
+            ]
         );
 
-
-        /*
-         * Dashboard juga diperbarui.
-         */
-        if (result.dashboard) {
-
-            state.dashboard =
-                result.dashboard;
-
-            renderDashboard();
-
-        } else {
-
-            await refreshDashboardOnlySafe();
-
-        }
-
+        return true;
 
     } catch (error) {
 
         console.error(
-            'paySalary:',
+            'confirmSalaryPayment:',
             error
         );
 
         showToast(
-            getErrorMessage(error),
+            error.message ||
+            'Gagal memproses pembayaran gaji.',
             'error'
         );
 
+        return false;
+
     } finally {
 
-        setButtonBusy(
-            button,
+        setButtonLoading(
+            confirmButton,
             false
         );
     }
@@ -2102,74 +2330,402 @@ async function handlePaySalary(button) {
 
 
 /* ================================================================
-   KONFIRMASI BAYAR
-   ================================================================ */
+   21. KAS POKJA
+================================================================ */
 
-async function confirmPayment(
-    name,
-    amount,
-    month
-) {
+async function loadCash() {
 
-    /*
-     * Gunakan modal custom jika index.html
-     * menyediakan fungsi openConfirmModal.
-     */
+    try {
 
-    if (
-        typeof window.openConfirmModal ===
-        'function'
-    ) {
+        const result =
+            await apiRequest(
+                API_ACTIONS.GET_CASH
+            );
 
-        return await window.openConfirmModal({
+        const cash =
+            result.cash ||
+            result.data ||
+            result;
 
-            title:
-                'Konfirmasi Pembayaran',
+        state.cash =
+            cash || {};
 
-            message:
-                `Bayarkan gaji ${name} sebesar ${formatRupiah(amount)} untuk bulan ${month}?`,
+        updateCashUI();
 
-            confirmText:
-                '💰 BAYAR GAJI',
+        return state.cash;
 
-            cancelText:
-                'Batal'
-        });
+    } catch (error) {
+
+        console.error(
+            'loadCash:',
+            error
+        );
+
+        updateCashUI();
+
+        throw error;
     }
+}
 
 
-    /*
-     * Fallback.
-     */
-    return window.confirm(
-        `Bayarkan gaji ${name} sebesar ${formatRupiah(amount)} untuk bulan ${month}?`
+function updateCashUI() {
+
+    const d =
+        state.dashboard || {};
+
+    const c =
+        state.cash || {};
+
+    const totalIncome =
+        valueFrom(
+            c,
+            [
+                'totalIncome',
+                'totalPemasukan'
+            ],
+            d.totalIncome
+        );
+
+    const allocation =
+        valueFrom(
+            c,
+            [
+                'kasAllocation',
+                'allocation',
+                'alokasiKas',
+                'alokasiKasPokja'
+            ],
+            d.kasAllocation
+        );
+
+    const expense =
+        valueFrom(
+            c,
+            [
+                'totalExpense',
+                'totalPengeluaran'
+            ],
+            d.totalExpense
+        );
+
+    const remaining =
+        valueFrom(
+            c,
+            [
+                'remainingCash',
+                'sisaKas',
+                'sisaKasPokja'
+            ],
+            d.remainingCash
+        );
+
+    const salaryFund =
+        valueFrom(
+            c,
+            [
+                'salaryFund',
+                'danaPenggajian'
+            ],
+            d.salaryFund
+        );
+
+    const salaryPaid =
+        valueFrom(
+            c,
+            [
+                'salaryPaid',
+                'totalSalaryPaid'
+            ],
+            d.totalSalaryPaid
+        );
+
+    const salaryRemaining =
+        valueFrom(
+            c,
+            [
+                'salaryRemaining',
+                'remainingSalaryFund'
+            ],
+            d.remainingSalaryFund
+        );
+
+    setText(
+        'sisaKasPokja',
+        formatRupiah(remaining)
+    );
+
+    setText(
+        'cashTotalIncome',
+        formatRupiah(totalIncome)
+    );
+
+    setText(
+        'cashAllocationDetail',
+        formatRupiah(allocation)
+    );
+
+    setText(
+        'cashTotalExpense',
+        formatRupiah(expense)
+    );
+
+    setText(
+        'cashSalaryFund',
+        formatRupiah(salaryFund)
+    );
+
+    setText(
+        'cashSalaryPaid',
+        formatRupiah(salaryPaid)
+    );
+
+    setText(
+        'cashSalaryRemaining',
+        formatRupiah(salaryRemaining)
     );
 }
 
 
 /* ================================================================
-   RIWAYAT
-   ================================================================ */
+   22. PEGAWAI
+================================================================ */
 
-function renderHistory() {
+async function loadEmployees() {
 
-    const container =
-        getElementByIds(
-            'historyTableBody',
-            'riwayatTableBody',
-            'historyList',
-            'riwayatList'
+    try {
+
+        const result =
+            await apiRequest(
+                API_ACTIONS.GET_EMPLOYEES
+            );
+
+        state.employees =
+            normalizeArray(
+                result,
+                [
+                    'employees',
+                    'employee',
+                    'data',
+                    'rows',
+                    'pegawai'
+                ]
+            );
+
+        renderEmployees();
+
+        return state.employees;
+
+    } catch (error) {
+
+        console.error(
+            'loadEmployees:',
+            error
         );
 
-    if (!container) {
+        state.employees = [];
+
+        renderEmployees();
+
+        throw error;
+    }
+}
+
+
+function renderEmployees() {
+
+    const tbody =
+        $('employeeTableBody');
+
+    if (!tbody) return;
+
+    const totalEmployees =
+        state.employees.length ||
+        toNumber(
+            state.dashboard.totalEmployees
+        );
+
+    const totalPoints =
+        state.employees.reduce(
+            (
+                total,
+                employee
+            ) => {
+
+                return total +
+                    toNumber(
+                        pick(
+                            employee,
+                            [
+                                'points',
+                                'point',
+                                'poin',
+                                'Bobot Poin'
+                            ]
+                        )
+                    );
+
+            },
+            0
+        );
+
+    setText(
+        'employeeCountDisplay',
+        formatNumber(totalEmployees)
+    );
+
+    setText(
+        'employeeTotalPoints',
+        formatNumber(
+            totalPoints ||
+            getDashboardTotalPoints()
+        )
+    );
+
+    if (!state.employees.length) {
+
+        tbody.innerHTML =
+            emptyTableRow(
+                'Belum ada data pegawai.',
+                6
+            );
+
         return;
     }
 
-    container.innerHTML = '';
+    tbody.innerHTML =
+        state.employees.map(
+            (employee, index) => {
+
+                const no =
+                    pick(
+                        employee,
+                        [
+                            'no',
+                            'No',
+                            'number'
+                        ]
+                    ) ||
+                    index + 1;
+
+                const position =
+                    pick(
+                        employee,
+                        [
+                            'position',
+                            'jabatan',
+                            'Jabatan'
+                        ]
+                    ) || '-';
+
+                const name =
+                    pick(
+                        employee,
+                        [
+                            'name',
+                            'nama',
+                            'namaPegawai',
+                            'Nama Pegawai'
+                        ]
+                    ) || '-';
+
+                const points =
+                    toNumber(
+                        pick(
+                            employee,
+                            [
+                                'points',
+                                'point',
+                                'poin',
+                                'Bobot Poin'
+                            ]
+                        )
+                    );
+
+                return `
+                    <tr>
+                        <td>${escapeHtml(no)}</td>
+                        <td>${escapeHtml(position)}</td>
+                        <td>
+                            <strong>
+                                ${escapeHtml(name)}
+                            </strong>
+                        </td>
+                        <td class="number-cell">
+                            ${formatNumber(points)}
+                        </td>
+                    </tr>
+                `;
+            }
+        ).join('');
+}
+
+
+function getDashboardTotalPoints() {
+
+    const d =
+        state.dashboard || {};
+
+    return toNumber(
+        d.totalPoints ||
+        d.totalPoin
+    );
+}
+
+
+/* ================================================================
+   23. RIWAYAT
+================================================================ */
+
+async function loadHistory() {
+
+    try {
+
+        const result =
+            await apiRequest(
+                API_ACTIONS.GET_HISTORY
+            );
+
+        state.history =
+            normalizeArray(
+                result,
+                [
+                    'history',
+                    'data',
+                    'rows',
+                    'riwayat'
+                ]
+            );
+
+        renderHistory();
+
+        return state.history;
+
+    } catch (error) {
+
+        console.error(
+            'loadHistory:',
+            error
+        );
+
+        state.history = [];
+
+        renderHistory();
+
+        throw error;
+    }
+}
+
+
+function renderHistory() {
+
+    const tbody =
+        $('historyTableBody');
+
+    if (!tbody) return;
 
     if (!state.history.length) {
 
-        container.innerHTML =
+        tbody.innerHTML =
             emptyTableRow(
                 'Belum ada riwayat transaksi.',
                 6
@@ -2178,1162 +2734,311 @@ function renderHistory() {
         return;
     }
 
-    const data =
-        [...state.history]
-            .sort(function(a, b) {
+    tbody.innerHTML =
+        state.history.map(
+            (item, index) => {
 
-                return String(
-                    b.date || ''
-                ).localeCompare(
-                    String(a.date || '')
-                );
-            });
+                const date =
+                    pick(
+                        item,
+                        [
+                            'date',
+                            'tanggal',
+                            'Tanggal'
+                        ]
+                    );
 
+                const type =
+                    pick(
+                        item,
+                        [
+                            'type',
+                            'jenis',
+                            'Jenis'
+                        ]
+                    ) || '-';
 
-    data.forEach(function(item) {
+                const amount =
+                    toNumber(
+                        pick(
+                            item,
+                            [
+                                'amount',
+                                'nominal',
+                                'Nominal'
+                            ]
+                        )
+                    );
 
-        const tr =
-            document.createElement('tr');
+                const description =
+                    pick(
+                        item,
+                        [
+                            'description',
+                            'keterangan',
+                            'keteranganSumber',
+                            'Keterangan/Sumber'
+                        ]
+                    ) || '-';
 
-        tr.innerHTML = `
+                const allocation =
+                    pick(
+                        item,
+                        [
+                            'allocation',
+                            'alokasi',
+                            'Alokasi'
+                        ]
+                    ) || '-';
 
-            <td>
-                ${escapeHtml(
-                    formatDisplayDate(item.date)
-                )}
-            </td>
+                const balance =
+                    pick(
+                        item,
+                        [
+                            'balance',
+                            'saldo',
+                            'saldoKas',
+                            'Saldo Kas'
+                        ]
+                    );
 
-            <td>
-                ${escapeHtml(
-                    item.type || '-'
-                )}
-            </td>
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
 
-            <td class="money-cell">
-                ${escapeHtml(
-                    formatRupiah(item.amount)
-                )}
-            </td>
+                        <td>
+                            ${escapeHtml(
+                                formatDateDisplay(date)
+                            )}
+                        </td>
 
-            <td class="description-cell">
-                ${escapeHtml(
-                    item.description || '-'
-                )}
-            </td>
+                        <td>
+                            <span class="${historyTypeClass(type)}">
+                                ${escapeHtml(type)}
+                            </span>
+                        </td>
 
-            <td>
-                ${escapeHtml(
-                    item.allocation || '-'
-                )}
-            </td>
+                        <td class="money-cell">
+                            ${formatRupiah(amount)}
+                        </td>
 
-            <td class="money-cell">
-                ${escapeHtml(
-                    formatRupiah(item.balance)
-                )}
-            </td>
+                        <td>
+                            ${escapeHtml(
+                                allocation
+                            )}
+                        </td>
 
-        `;
-
-        container.appendChild(tr);
-    });
+                        <td class="money-cell">
+                            ${
+                                balance !== undefined
+                                    ? formatRupiah(balance)
+                                    : '-'
+                            }
+                        </td>
+                    </tr>
+                `;
+            }
+        ).join('');
 }
 
 
 /* ================================================================
-   CONFIG
-   ================================================================ */
+   24. NORMALISASI ARRAY RESPONSE
+================================================================ */
 
-function renderConfig() {
+function normalizeArray(
+    result,
+    keys = []
+) {
 
-    const sources =
-        getIncomeSources();
+    if (Array.isArray(result)) {
+        return result;
+    }
 
-    /*
-     * Dropdown pemasukan.
-     */
-    const selects =
-        $all(
-            '#incomeSource, #sumberPemasukan, #keteranganPemasukan'
-        );
+    if (!result || typeof result !== 'object') {
+        return [];
+    }
 
+    for (const key of keys) {
 
-    selects.forEach(function(select) {
+        if (Array.isArray(result[key])) {
+            return result[key];
+        }
+    }
 
-        const currentValue =
-            select.value;
+    if (
+        result.data &&
+        Array.isArray(result.data)
+    ) {
 
-        /*
-         * Hapus option lama selain placeholder.
-         */
-        select.innerHTML = '';
+        return result.data;
+    }
 
-        const placeholder =
-            document.createElement('option');
+    if (
+        result.rows &&
+        Array.isArray(result.rows)
+    ) {
 
-        placeholder.value = '';
+        return result.rows;
+    }
 
-        placeholder.textContent =
-            'Pilih keterangan pemasukan';
-
-        placeholder.disabled =
-            false;
-
-        select.appendChild(
-            placeholder
-        );
+    return [];
+}
 
 
-        sources.forEach(function(source) {
+/* ================================================================
+   25. PICK OBJECT VALUE
+================================================================ */
 
-            const option =
-                document.createElement('option');
+function pick(
+    object,
+    keys
+) {
 
-            option.value =
-                source;
+    if (
+        !object ||
+        typeof object !== 'object'
+    ) {
+        return undefined;
+    }
 
-            option.textContent =
-                source;
-
-            select.appendChild(
-                option
-            );
-
-        });
-
+    for (const key of keys) {
 
         if (
-            sources.includes(
-                currentValue
+            Object.prototype.hasOwnProperty.call(
+                object,
+                key
             )
         ) {
 
-            select.value =
-                currentValue;
-        }
-
-    });
-
-
-    /*
-     * Max description words.
-     */
-    const maxWords =
-        getMaxDescriptionWords();
-
-    $all(
-        '[data-max-description-words]'
-    ).forEach(function(element) {
-
-        element.textContent =
-            maxWords;
-
-    });
-}
-
-
-/* ================================================================
-   DATE INPUT
-   ================================================================ */
-
-function initializeDateInputs() {
-
-    const dateInputs =
-        $all(
-            'input[type="date"]'
-        );
-
-    dateInputs.forEach(function(input) {
-
-        /*
-         * Browser native date picker.
-         */
-        input.setAttribute(
-            'autocomplete',
-            'off'
-        );
-
-        /*
-         * Jangan set readonly agar tanggal
-         * tetap dapat diedit manual.
-         */
-        input.removeAttribute(
-            'readonly'
-        );
-    });
-
-
-    /*
-     * Bulan penggajian.
-     */
-    const payrollMonth =
-        getElementByIds(
-            'payrollMonth',
-            'bulanPenggajian',
-            'salaryMonth'
-        );
-
-    if (
-        payrollMonth &&
-        payrollMonth.type === 'month'
-    ) {
-
-        if (!payrollMonth.value) {
-
-            payrollMonth.value =
-                state.currentPayrollMonth ||
-                getCurrentMonth();
-        }
-    }
-}
-
-
-function setCurrentDateDefaults() {
-
-    const today =
-        getTodayLocal();
-
-    const dateInputs =
-        [
-            getElementByIds(
-                'incomeDate',
-                'tanggalPemasukan'
-            ),
-
-            getElementByIds(
-                'expenseDate',
-                'tanggalPengeluaran'
-            )
-        ].filter(Boolean);
-
-
-    dateInputs.forEach(function(input) {
-
-        if (!input.value) {
-
-            input.value =
-                today;
-        }
-
-    });
-
-
-    const payrollMonth =
-        getElementByIds(
-            'payrollMonth',
-            'bulanPenggajian',
-            'salaryMonth'
-        );
-
-    if (
-        payrollMonth &&
-        !payrollMonth.value
-    ) {
-
-        payrollMonth.value =
-            state.currentPayrollMonth ||
-            getCurrentMonth();
-    }
-}
-
-
-/* ================================================================
-   DESCRIPTION COUNTER
-   ================================================================ */
-
-function initializeDescriptionCounter() {
-
-    const input =
-        getElementByIds(
-            'expenseDescription',
-            'deskripsiPengeluaran',
-            'description'
-        );
-
-    if (!input) {
-        return;
-    }
-
-    input.addEventListener(
-        'input',
-        updateDescriptionCounter
-    );
-
-    updateDescriptionCounter();
-}
-
-
-function updateDescriptionCounter() {
-
-    const input =
-        getElementByIds(
-            'expenseDescription',
-            'deskripsiPengeluaran',
-            'description'
-        );
-
-    if (!input) {
-        return;
-    }
-
-    const count =
-        countWords(
-            input.value
-        );
-
-    const max =
-        getMaxDescriptionWords();
-
-
-    setText(
-        [
-            'descriptionWordCount',
-            'jumlahKataDeskripsi',
-            'wordCount'
-        ],
-        `${count}/${max} kata`
-    );
-
-
-    /*
-     * Beberapa desain mungkin memakai
-     * progress / warning.
-     */
-    const counter =
-        getElementByIds(
-            'descriptionCounter',
-            'deskripsiCounter'
-        );
-
-    if (counter) {
-
-        counter.classList.toggle(
-            'limit-warning',
-            count >= max * 0.8
-        );
-
-        counter.classList.toggle(
-            'limit-error',
-            count > max
-        );
-    }
-}
-
-
-/* ================================================================
-   FORMAT DATA
-   ================================================================ */
-
-function formatRupiah(value) {
-
-    const number =
-        Number(value || 0);
-
-    return (
-        APP_CONFIG.CURRENCY_PREFIX +
-        number.toLocaleString(
-            APP_CONFIG.CURRENCY_LOCALE,
-            {
-                maximumFractionDigits: 0
-            }
-        )
-    );
-}
-
-
-function numberFormat(value) {
-
-    return Number(
-        value || 0
-    ).toLocaleString(
-        APP_CONFIG.CURRENCY_LOCALE
-    );
-}
-
-
-function formatDisplayDate(value) {
-
-    if (!value) {
-        return '-';
-    }
-
-    const text =
-        String(value);
-
-    /*
-     * YYYY-MM-DD.
-     */
-    const match =
-        text.match(
-            /^(\d{4})-(\d{2})-(\d{2})$/
-        );
-
-    if (!match) {
-        return text;
-    }
-
-    return (
-        match[3] +
-        '/' +
-        match[2] +
-        '/' +
-        match[1]
-    );
-}
-
-
-function parseCurrencyInput(value) {
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-
-        return 0;
-    }
-
-    if (typeof value === 'number') {
-        return value;
-    }
-
-    let text =
-        String(value)
-            .trim()
-            .replace(/Rp/gi, '')
-            .replace(/\s/g, '');
-
-    if (!text) {
-        return 0;
-    }
-
-    /*
-     * Format Indonesia:
-     * 100.000
-     * 1.250.000
-     */
-    if (
-        text.includes('.') &&
-        !text.includes(',')
-    ) {
-
-        text =
-            text.replace(
-                /\./g,
-                ''
-            );
-
-    } else if (
-        text.includes('.') &&
-        text.includes(',')
-    ) {
-
-        text =
-            text
-                .replace(/\./g, '')
-                .replace(',', '.');
-
-    } else if (
-        text.includes(',')
-    ) {
-
-        const parts =
-            text.split(',');
-
-        if (
-            parts.length === 2 &&
-            parts[1].length <= 2
-        ) {
-
-            text =
-                parts[0] +
-                '.' +
-                parts[1];
-
-        } else {
-
-            text =
-                text.replace(
-                    /,/g,
-                    ''
-                );
-        }
-    }
-
-    const result =
-        Number(text);
-
-    return Number.isFinite(result)
-        ? result
-        : 0;
-}
-
-
-function countWords(text) {
-
-    if (
-        !text ||
-        !String(text).trim()
-    ) {
-
-        return 0;
-    }
-
-    return String(text)
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean)
-        .length;
-}
-
-
-/* ================================================================
-   CONFIG ACCESS
-   ================================================================ */
-
-function getIncomeSources() {
-
-    return (
-        Array.isArray(
-            state.config?.incomeSources
-        )
-        &&
-        state.config.incomeSources.length
-            ? state.config.incomeSources
-            : APP_CONFIG.DEFAULT_INCOME_SOURCES
-    );
-}
-
-
-function getMaxDescriptionWords() {
-
-    return Number(
-        state.config?.maxDescriptionWords ||
-        APP_CONFIG.DEFAULT_MAX_DESCRIPTION_WORDS
-    );
-}
-
-
-/* ================================================================
-   DATE
-   ================================================================ */
-
-function getTodayLocal() {
-
-    const now =
-        new Date();
-
-    const year =
-        now.getFullYear();
-
-    const month =
-        String(
-            now.getMonth() + 1
-        ).padStart(
-            2,
-            '0'
-        );
-
-    const day =
-        String(
-            now.getDate()
-        ).padStart(
-            2,
-            '0'
-        );
-
-    return (
-        year +
-        '-' +
-        month +
-        '-' +
-        day
-    );
-}
-
-
-function getCurrentMonth() {
-
-    const now =
-        new Date();
-
-    return (
-        now.getFullYear() +
-        '-' +
-        String(
-            now.getMonth() + 1
-        ).padStart(
-            2,
-            '0'
-        )
-    );
-}
-
-
-/* ================================================================
-   UI HELPER
-   ================================================================ */
-
-function setText(
-    ids,
-    value
-) {
-
-    const list =
-        Array.isArray(ids)
-            ? ids
-            : [ids];
-
-    list.forEach(function(id) {
-
-        const element =
-            document.getElementById(id);
-
-        if (element) {
-
-            element.textContent =
-                value ?? '';
-        }
-
-    });
-}
-
-
-function setFormBusy(
-    form,
-    busy
-) {
-
-    if (!form) {
-        return;
-    }
-
-    const buttons =
-        form.querySelectorAll(
-            'button[type="submit"], button'
-        );
-
-    buttons.forEach(function(button) {
-
-        if (busy) {
+            const value =
+                object[key];
 
             if (
-                !button.dataset.originalText
+                value !== null &&
+                value !== undefined &&
+                value !== ''
             ) {
 
-                button.dataset.originalText =
-                    button.innerHTML;
-            }
-
-            button.disabled =
-                true;
-
-            button.classList.add(
-                'is-loading'
-            );
-
-            button.innerHTML =
-                '⏳ Memproses...';
-
-        } else {
-
-            button.disabled =
-                false;
-
-            button.classList.remove(
-                'is-loading'
-            );
-
-            if (
-                button.dataset.originalText
-            ) {
-
-                button.innerHTML =
-                    button.dataset.originalText;
+                return value;
             }
         }
+    }
 
-    });
+    return undefined;
 }
 
 
-function setButtonBusy(
-    button,
-    busy,
-    loadingText = 'Memproses...'
+function valueFrom(
+    object,
+    keys,
+    fallback = 0
 ) {
 
-    if (!button) {
-        return;
-    }
+    const value =
+        pick(object, keys);
 
-    if (busy) {
-
-        if (
-            !button.dataset.originalText
-        ) {
-
-            button.dataset.originalText =
-                button.innerHTML;
-        }
-
-        button.disabled =
-            true;
-
-        button.classList.add(
-            'is-loading'
-        );
-
-        button.innerHTML =
-            '⏳ ' +
-            loadingText;
-
-    } else {
-
-        button.disabled =
-            false;
-
-        button.classList.remove(
-            'is-loading'
-        );
-
-        if (
-            button.dataset.originalText
-        ) {
-
-            button.innerHTML =
-                button.dataset.originalText;
-        }
-    }
-}
-
-
-function setGlobalLoading(
-    loading
-) {
-
-    state.loading =
-        loading;
-
-    document.body.classList.toggle(
-        'app-loading',
-        loading
-    );
+    return value !== undefined
+        ? toNumber(value)
+        : toNumber(fallback);
 }
 
 
 /* ================================================================
-   STATUS KONEKSI
-   ================================================================ */
+   26. STATUS PEMBAYARAN
+================================================================ */
 
-function updateConnectionStatus(
-    text,
-    type
-) {
+function isPaid(item) {
 
-    const elements =
-        $all(
-            '#connectionStatus, [data-connection-status]'
-        );
-
-    elements.forEach(function(element) {
-
-        element.textContent =
-            text;
-
-        element.dataset.status =
-            type;
-
-        element.classList.remove(
-            'online',
-            'offline',
-            'loading'
-        );
-
-        element.classList.add(
-            type
-        );
-    });
-}
-
-
-/* ================================================================
-   STATUS KAS
-   ================================================================ */
-
-function updateBalanceStatus(
-    value
-) {
-
-    const amount =
-        Number(value || 0);
-
-    const elements =
-        $all(
-            '[data-balance-status]'
-        );
-
-    elements.forEach(function(element) {
-
-        element.classList.remove(
-            'positive',
-            'zero',
-            'negative'
-        );
-
-        if (amount > 0) {
-
-            element.classList.add(
-                'positive'
-            );
-
-        } else if (amount === 0) {
-
-            element.classList.add(
-                'zero'
-            );
-
-        } else {
-
-            element.classList.add(
-                'negative'
-            );
-        }
-
-    });
-}
-
-
-/* ================================================================
-   PAYROLL STATUS
-   ================================================================ */
-
-function getPayrollStatusText(item) {
-
-    if (
-        item.paid ||
-        String(
-            item.status || ''
-        ).toUpperCase() ===
-        'SUDAH DIBAYAR'
-    ) {
-
-        return 'SUDAH DIBAYAR';
-    }
-
-    if (
-        !item.name ||
-        !item.name.trim()
-    ) {
-
-        return 'BELUM DIISI';
-    }
-
-    if (
-        Number(item.salary || 0) <= 0
-    ) {
-
-        return 'BELUM TERSEDIA';
-    }
-
-    return 'BELUM DIBAYAR';
-}
-
-
-function getPayrollStatusClass(item) {
+    if (!item) return false;
 
     const status =
-        getPayrollStatusText(
-            item
-        );
+        String(
+            pick(
+                item,
+                [
+                    'paymentStatus',
+                    'statusPembayaran',
+                    'Status Pembayaran',
+                    'statusBayar',
+                    'status',
+                    'Status'
+                ]
+            ) || ''
+        )
+        .trim()
+        .toUpperCase();
+
+    return (
+        status.includes('SUDAH') ||
+        status.includes('DIBAYAR') ||
+        status.includes('LUNAS') ||
+        status === 'PAID'
+    );
+}
+
+
+function statusClass(status) {
+
+    const value =
+        String(status || '')
+            .toUpperCase();
 
     if (
-        status ===
-        'SUDAH DIBAYAR'
+        value.includes('SUDAH') ||
+        value.includes('LUNAS') ||
+        value.includes('PAID')
     ) {
 
-        return 'status status-paid';
+        return 'status-badge status-paid';
     }
 
     if (
-        status ===
-        'BELUM DIBAYAR'
+        value.includes('BELUM') ||
+        value.includes('UNPAID')
     ) {
 
-        return 'status status-unpaid';
+        return 'status-badge status-unpaid';
     }
 
-    return 'status status-empty';
+    return 'status-badge status-info';
 }
 
 
-/* ================================================================
-   ERROR HANDLING
-   ================================================================ */
+function historyTypeClass(type) {
 
-function getErrorMessage(error) {
+    const value =
+        String(type || '')
+            .toUpperCase();
 
-    if (!error) {
+    if (
+        value.includes('MASUK')
+    ) {
 
-        return 'Terjadi kesalahan.';
+        return 'history-income';
     }
 
     if (
-        error.message
+        value.includes('KELUAR')
     ) {
 
-        return error.message;
+        return 'history-expense';
     }
-
-    return String(error);
-}
-
-
-/* ================================================================
-   TOAST
-   ================================================================ */
-
-function showToast(
-    message,
-    type = 'info'
-) {
-
-    /*
-     * Jika index.html/style.css nanti memiliki
-     * sistem toast sendiri, kita bisa gunakan
-     * container berikut.
-     */
-
-    let container =
-        document.getElementById(
-            'toastContainer'
-        );
-
-
-    if (!container) {
-
-        container =
-            document.createElement(
-                'div'
-            );
-
-        container.id =
-            'toastContainer';
-
-        container.className =
-            'toast-container';
-
-        document.body.appendChild(
-            container
-        );
-    }
-
-
-    const toast =
-        document.createElement(
-            'div'
-        );
-
-    toast.className =
-        `toast toast-${type}`;
-
-
-    const icon =
-        type === 'success'
-            ? '✓'
-            : type === 'error'
-                ? '!'
-                : type === 'warning'
-                    ? '⚠'
-                    : 'ℹ';
-
-
-    toast.innerHTML = `
-        <span class="toast-icon">
-            ${icon}
-        </span>
-
-        <span class="toast-message">
-            ${escapeHtml(message)}
-        </span>
-
-        <button
-            type="button"
-            class="toast-close"
-            aria-label="Tutup"
-        >
-            ×
-        </button>
-    `;
-
-
-    container.appendChild(
-        toast
-    );
-
-
-    const close =
-        toast.querySelector(
-            '.toast-close'
-        );
-
-
-    if (close) {
-
-        close.addEventListener(
-            'click',
-            function() {
-
-                removeToast(
-                    toast
-                );
-
-            }
-        );
-    }
-
-
-    /*
-     * Animasi masuk.
-     */
-    requestAnimationFrame(
-        function() {
-
-            toast.classList.add(
-                'show'
-            );
-
-        }
-    );
-
-
-    /*
-     * Auto close.
-     */
-    window.setTimeout(
-        function() {
-
-            removeToast(
-                toast
-            );
-
-        },
-        type === 'error'
-            ? 6000
-            : 4000
-    );
-}
-
-
-function removeToast(
-    toast
-) {
-
-    if (!toast) {
-        return;
-    }
-
-    toast.classList.remove(
-        'show'
-    );
-
-    window.setTimeout(
-        function() {
-
-            toast.remove();
-
-        },
-        250
-    );
-}
-
-
-/* ================================================================
-   HTML SAFETY
-   ================================================================ */
-
-function escapeHtml(value) {
 
     if (
-        value === null ||
-        value === undefined
+        value.includes('GAJI')
     ) {
 
-        return '';
+        return 'history-salary';
     }
 
-    return String(value)
-        .replace(
-            /&/g,
-            '&amp;'
-        )
-        .replace(
-            /</g,
-            '&lt;'
-        )
-        .replace(
-            />/g,
-            '&gt;'
-        )
-        .replace(
-            /"/g,
-            '&quot;'
-        )
-        .replace(
-            /'/g,
-            '&#039;'
-        );
+    return 'history-other';
 }
 
 
 /* ================================================================
-   FORM HELPER
-   ================================================================ */
-
-function findFormElement(
-    form,
-    ids
-) {
-
-    if (!form) {
-        return null;
-    }
-
-    for (const id of ids) {
-
-        const element =
-            form.querySelector(
-                '#' + CSS.escape(id)
-            );
-
-        if (element) {
-            return element;
-        }
-    }
-
-
-    /*
-     * Fallback berdasarkan name.
-     */
-    for (const id of ids) {
-
-        const element =
-            form.querySelector(
-                `[name="${CSS.escape(id)}"]`
-            );
-
-        if (element) {
-            return element;
-        }
-    }
-
-
-    return null;
-}
-
-
-/* ================================================================
-   EMPTY TABLE
-   ================================================================ */
+   27. TABLE EMPTY
+================================================================ */
 
 function emptyTableRow(
     message,
@@ -3354,95 +3059,1059 @@ function emptyTableRow(
 
 
 /* ================================================================
-   SAFE DASHBOARD REFRESH
-   ================================================================ */
+   28. TEXT HELPER
+================================================================ */
 
-async function refreshDashboardOnlySafe() {
+function setText(
+    id,
+    value
+) {
 
-    try {
+    const element =
+        $(id);
 
-        const result =
-            await apiGet(
-                'getDashboard'
-            );
+    if (!element) return;
 
-        if (
-            result &&
-            result.success
-        ) {
+    element.textContent =
+        value === null ||
+        value === undefined
+            ? ''
+            : String(value);
+}
 
-            state.dashboard =
-                result;
 
-            renderDashboard();
-        }
+/* ================================================================
+   29. FORM LOADING
+================================================================ */
 
-        return result;
+function setFormLoading(
+    form,
+    loading
+) {
 
-    } catch (error) {
+    if (!form) return;
 
-        console.warn(
-            'Dashboard refresh gagal:',
-            error
+    const buttons =
+        form.querySelectorAll(
+            'button[type="submit"], button'
         );
 
-        return null;
+    buttons.forEach(button => {
+
+        if (loading) {
+
+            if (
+                !button.dataset.originalText
+            ) {
+
+                button.dataset.originalText =
+                    button.innerHTML;
+            }
+
+            button.disabled = true;
+
+            button.innerHTML =
+                '⏳ Menyimpan...';
+
+        } else {
+
+            button.disabled = false;
+
+            if (
+                button.dataset.originalText
+            ) {
+
+                button.innerHTML =
+                    button.dataset.originalText;
+
+                delete button.dataset.originalText;
+            }
+        }
+    });
+}
+
+
+function setButtonLoading(
+    button,
+    loading
+) {
+
+    if (!button) return;
+
+    if (loading) {
+
+        if (
+            !button.dataset.originalText
+        ) {
+
+            button.dataset.originalText =
+                button.innerHTML;
+        }
+
+        button.disabled = true;
+
+        button.innerHTML =
+            '⏳ Memproses...';
+
+    } else {
+
+        button.disabled = false;
+
+        if (
+            button.dataset.originalText
+        ) {
+
+            button.innerHTML =
+                button.dataset.originalText;
+
+            delete button.dataset.originalText;
+        }
     }
 }
 
 
 /* ================================================================
-   EXPORT PUBLIC API
-   ================================================================ */
+   30. DEFAULT DATE
+================================================================ */
+
+function setDefaultDates() {
+
+    const today =
+        state.currentDate ||
+        getCurrentDate();
+
+    if ($('incomeDate')) {
+
+        if (!$('incomeDate').value) {
+
+            $('incomeDate').value =
+                today;
+        }
+    }
+
+    if ($('expenseDate')) {
+
+        if (!$('expenseDate').value) {
+
+            $('expenseDate').value =
+                today;
+        }
+    }
+
+    if ($('payrollMonth')) {
+
+        if (!$('payrollMonth').value) {
+
+            $('payrollMonth').value =
+                state.currentMonth ||
+                getCurrentMonth();
+        }
+    }
+}
+
+
+/* ================================================================
+   31. NAVIGASI SIDEBAR
+================================================================ */
+
+function initNavigation() {
+
+    const navItems =
+        queryAll(
+            '.nav-item[data-menu]'
+        );
+
+    navItems.forEach(item => {
+
+        item.addEventListener(
+            'click',
+            event => {
+
+                event.preventDefault();
+
+                const target =
+                    item.dataset.menu;
+
+                if (!target) return;
+
+                switchSection(target);
+
+                closeSidebarMobile();
+            }
+        );
+    });
+}
+
+
+function switchSection(
+    sectionId
+) {
+
+    const sections =
+        queryAll(
+            '.content-section, section[data-section], .page-section'
+        );
+
+    let found = false;
+
+    sections.forEach(section => {
+
+        const id =
+            section.id;
+
+        if (id === sectionId) {
+
+            section.classList.add(
+                'active',
+                'show'
+            );
+
+            section.removeAttribute(
+                'hidden'
+            );
+
+            section.style.display =
+                '';
+
+            found = true;
+
+        } else {
+
+            section.classList.remove(
+                'active',
+                'show'
+            );
+        }
+    });
+
+    const navItems =
+        queryAll(
+            '.nav-item[data-menu]'
+        );
+
+    navItems.forEach(item => {
+
+        item.classList.toggle(
+            'active',
+            item.dataset.menu === sectionId
+        );
+    });
+
+    if (found) {
+
+        state.currentMenu =
+            sectionId;
+
+        handleSectionLoad(sectionId);
+    }
+}
+
+
+async function handleSectionLoad(
+    sectionId
+) {
+
+    try {
+
+        switch (sectionId) {
+
+            case 'dashboardSection':
+                await loadDashboard();
+                break;
+
+            case 'incomeSection':
+                await loadIncome();
+                break;
+
+            case 'expenseSection':
+                await loadExpense();
+                break;
+
+            case 'payrollSection':
+                await loadPayroll(
+                    $('payrollMonth')?.value ||
+                    state.currentMonth
+                );
+                break;
+
+            case 'cashSection':
+                await loadCash();
+                break;
+
+            case 'employeeSection':
+                await loadEmployees();
+                break;
+
+            case 'historySection':
+                await loadHistory();
+                break;
+
+            case 'guideSection':
+                break;
+        }
+
+    } catch (error) {
+
+        showToast(
+            error.message ||
+            'Gagal memuat data.',
+            'error'
+        );
+    }
+}
+
+
+/* ================================================================
+   32. MOBILE SIDEBAR
+================================================================ */
+
+function initSidebar() {
+
+    const menuToggle =
+        $('menuToggle');
+
+    const closeSidebar =
+        $('closeSidebar');
+
+    const overlay =
+        $('sidebarOverlay');
+
+    if (menuToggle) {
+
+        menuToggle.addEventListener(
+            'click',
+            openSidebarMobile
+        );
+    }
+
+    if (closeSidebar) {
+
+        closeSidebar.addEventListener(
+            'click',
+            closeSidebarMobile
+        );
+    }
+
+    if (overlay) {
+
+        overlay.addEventListener(
+            'click',
+            closeSidebarMobile
+        );
+    }
+}
+
+
+function openSidebarMobile() {
+
+    const sidebar =
+        $('sidebar');
+
+    const overlay =
+        $('sidebarOverlay');
+
+    if (sidebar) {
+
+        sidebar.classList.add(
+            'open',
+            'active'
+        );
+    }
+
+    if (overlay) {
+
+        overlay.classList.add(
+            'active',
+            'show'
+        );
+    }
+
+    document.body.classList.add(
+        'sidebar-open'
+    );
+}
+
+
+function closeSidebarMobile() {
+
+    const sidebar =
+        $('sidebar');
+
+    const overlay =
+        $('sidebarOverlay');
+
+    if (sidebar) {
+
+        sidebar.classList.remove(
+            'open',
+            'active'
+        );
+    }
+
+    if (overlay) {
+
+        overlay.classList.remove(
+            'active',
+            'show'
+        );
+    }
+
+    document.body.classList.remove(
+        'sidebar-open'
+    );
+}
+
+
+/* ================================================================
+   33. MODAL EVENTS
+================================================================ */
+
+function initModal() {
+
+    const modal =
+        $('confirmModal');
+
+    const close =
+        $('confirmModalClose');
+
+    const cancel =
+        $('confirmModalCancel');
+
+    const confirm =
+        $('confirmModalConfirm');
+
+    if (close) {
+
+        close.addEventListener(
+            'click',
+            closeConfirmModal
+        );
+    }
+
+    if (cancel) {
+
+        cancel.addEventListener(
+            'click',
+            closeConfirmModal
+        );
+    }
+
+    if (confirm) {
+
+        confirm.addEventListener(
+            'click',
+            confirmSalaryPayment
+        );
+    }
+
+    if (modal) {
+
+        modal.addEventListener(
+            'click',
+            event => {
+
+                if (
+                    event.target === modal
+                ) {
+
+                    closeConfirmModal();
+                }
+            }
+        );
+    }
+
+    document.addEventListener(
+        'keydown',
+        event => {
+
+            if (
+                event.key === 'Escape'
+            ) {
+
+                closeConfirmModal();
+            }
+        }
+    );
+}
+
 
 /*
- * Beberapa fungsi sengaja diekspos ke window
- * agar mudah dipanggil oleh index.html.
- */
+   Bridge untuk inline HTML:
+   window.openConfirmModal(...)
+*/
+window.openConfirmModal =
+    openConfirmModal;
+
+
+/* ================================================================
+   34. FORM EVENTS
+================================================================ */
+
+function initForms() {
+
+    const incomeForm =
+        $('incomeForm');
+
+    if (incomeForm) {
+
+        incomeForm.addEventListener(
+            'submit',
+            event => {
+
+                event.preventDefault();
+
+                addIncome();
+            }
+        );
+    }
+
+    const expenseForm =
+        $('expenseForm');
+
+    if (expenseForm) {
+
+        expenseForm.addEventListener(
+            'submit',
+            event => {
+
+                event.preventDefault();
+
+                addExpense();
+            }
+        );
+    }
+
+    const incomeAmount =
+        $('incomeAmount');
+
+    if (incomeAmount) {
+
+        incomeAmount.addEventListener(
+            'input',
+            updateIncomePreview
+        );
+    }
+
+    const expenseDescription =
+        $('expenseDescription');
+
+    if (expenseDescription) {
+
+        expenseDescription.addEventListener(
+            'input',
+            updateDescriptionCounter
+        );
+    }
+
+    const payrollMonth =
+        $('payrollMonth');
+
+    if (payrollMonth) {
+
+        payrollMonth.addEventListener(
+            'change',
+            async () => {
+
+                state.currentMonth =
+                    payrollMonth.value ||
+                    getCurrentMonth();
+
+                try {
+
+                    await loadPayroll(
+                        state.currentMonth
+                    );
+
+                } catch (error) {
+
+                    showToast(
+                        error.message ||
+                        'Gagal memuat penggajian.',
+                        'error'
+                    );
+                }
+            }
+        );
+    }
+}
+
+
+/* ================================================================
+   35. REFRESH BUTTON
+================================================================ */
+
+function initRefreshButton() {
+
+    const button =
+        $('refreshButton');
+
+    if (!button) return;
+
+    button.addEventListener(
+        'click',
+        async () => {
+
+            await refreshAll(
+                true
+            );
+        }
+    );
+}
+
+
+/* ================================================================
+   36. REFRESH SEMUA DATA
+================================================================ */
+
+async function refreshAll(
+    showMessage = false,
+    only = null
+) {
+
+    if (state.loading) {
+        return;
+    }
+
+    state.loading = true;
+
+    if (showMessage) {
+
+        showToast(
+            'Memperbarui data...',
+            'info',
+            1800
+        );
+    }
+
+    try {
+
+        const targets =
+            only ||
+            [
+                'dashboard',
+                'income',
+                'expense',
+                'payroll',
+                'cash',
+                'employees',
+                'history'
+            ];
+
+        const tasks = [];
+
+        if (
+            targets.includes('dashboard')
+        ) {
+
+            tasks.push(
+                loadDashboard()
+            );
+        }
+
+        if (
+            targets.includes('income')
+        ) {
+
+            tasks.push(
+                loadIncome()
+            );
+        }
+
+        if (
+            targets.includes('expense')
+        ) {
+
+            tasks.push(
+                loadExpense()
+            );
+        }
+
+        if (
+            targets.includes('payroll')
+        ) {
+
+            tasks.push(
+                loadPayroll(
+                    state.currentMonth
+                )
+            );
+        }
+
+        if (
+            targets.includes('cash')
+        ) {
+
+            tasks.push(
+                loadCash()
+            );
+        }
+
+        if (
+            targets.includes('employees')
+        ) {
+
+            tasks.push(
+                loadEmployees()
+            );
+        }
+
+        if (
+            targets.includes('history')
+        ) {
+
+            tasks.push(
+                loadHistory()
+            );
+        }
+
+        const results =
+            await Promise.allSettled(
+                tasks
+            );
+
+        const failed =
+            results.filter(
+                result =>
+                    result.status ===
+                    'rejected'
+            );
+
+        if (failed.length) {
+
+            console.warn(
+                'Sebagian data gagal dimuat:',
+                failed
+            );
+
+            setConnectionStatus(
+                false,
+                'Sebagian data gagal'
+            );
+
+        } else {
+
+            setConnectionStatus(
+                true,
+                'Terhubung'
+            );
+        }
+
+        state.lastUpdated =
+            new Date();
+
+        updateHeaderDate();
+
+        if (showMessage) {
+
+            if (failed.length) {
+
+                showToast(
+                    'Data diperbarui sebagian.',
+                    'warning'
+                );
+
+            } else {
+
+                showToast(
+                    'Data berhasil diperbarui.',
+                    'success'
+                );
+            }
+        }
+
+    } catch (error) {
+
+        console.error(
+            'refreshAll:',
+            error
+        );
+
+        setConnectionStatus(
+            false,
+            'Tidak terhubung'
+        );
+
+        if (showMessage) {
+
+            showToast(
+                error.message ||
+                'Gagal memperbarui data.',
+                'error'
+            );
+        }
+
+    } finally {
+
+        state.loading = false;
+    }
+}
+
+
+/* ================================================================
+   37. TEST CONNECTION
+================================================================ */
+
+async function testConnection() {
+
+    try {
+
+        const result =
+            await apiRequest(
+                API_ACTIONS.INFO
+            );
+
+        setConnectionStatus(
+            true,
+            'Terhubung'
+        );
+
+        if (result) {
+
+            if (
+                result.currentDate
+            ) {
+
+                state.currentDate =
+                    result.currentDate;
+            }
+
+            if (
+                result.currentMonth
+            ) {
+
+                state.currentMonth =
+                    result.currentMonth;
+            }
+
+            if (
+                result.dashboard
+            ) {
+
+                state.dashboard =
+                    result.dashboard;
+
+                updateDashboardUI();
+            }
+        }
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            'testConnection:',
+            error
+        );
+
+        setConnectionStatus(
+            false,
+            'Tidak terhubung'
+        );
+
+        return false;
+    }
+}
+
+
+/* ================================================================
+   38. INITIALIZE
+================================================================ */
+
+async function initializeApp() {
+
+    if (state.initialized) {
+        return;
+    }
+
+    showLoader(true);
+
+    state.currentDate =
+        getCurrentDate();
+
+    state.currentMonth =
+        getCurrentMonth();
+
+    updateHeaderDate();
+
+    setDefaultDates();
+
+    initNavigation();
+
+    initSidebar();
+
+    initModal();
+
+    initForms();
+
+    initRefreshButton();
+
+    updateIncomePreview();
+
+    updateDescriptionCounter();
+
+    /*
+       Dashboard adalah tampilan pertama.
+    */
+
+    switchSection(
+        'dashboardSection'
+    );
+
+    /*
+       Tes koneksi terlebih dahulu.
+    */
+
+    const connected =
+        await testConnection();
+
+    if (!connected) {
+
+        showToast(
+            'Belum dapat terhubung ke Code.gs. Periksa API_URL.',
+            'error',
+            5000
+        );
+
+    } else {
+
+        /*
+           Setelah koneksi berhasil,
+           ambil semua data.
+        */
+
+        await refreshAll(
+            false
+        );
+    }
+
+    state.initialized =
+        true;
+
+    showLoader(false);
+
+    /*
+       Auto refresh.
+    */
+
+    if (
+        CONFIG.AUTO_REFRESH
+    ) {
+
+        setInterval(
+            async () => {
+
+                if (
+                    document.hidden
+                ) {
+                    return;
+                }
+
+                await refreshAll(
+                    false
+                );
+
+            },
+            CONFIG.REFRESH_INTERVAL
+        );
+    }
+}
+
+
+/* ================================================================
+   39. EVENT DOM READY
+================================================================ */
+
+if (
+    document.readyState ===
+    'loading'
+) {
+
+    document.addEventListener(
+        'DOMContentLoaded',
+        initializeApp
+    );
+
+} else {
+
+    initializeApp();
+}
+
+
+/* ================================================================
+   40. PUBLIC API
+   Agar inline HTML atau debugging dapat mengakses fungsi.
+================================================================ */
 
 window.KeuanganPokja = {
 
-    state: state,
+    state,
 
-    loadAppData:
-        loadAppData,
+    config: CONFIG,
 
-    loadPayroll:
-        loadPayroll,
+    refreshAll,
 
-    refresh:
-        loadAppData,
+    loadDashboard,
 
-    refreshDashboard:
-        refreshDashboardOnly,
+    loadIncome,
 
-    addIncome:
-        addIncome,
+    addIncome,
 
-    addExpense:
-        addExpense,
+    loadExpense,
 
-    paySalary:
-        handlePaySalary,
+    addExpense,
 
-    formatRupiah:
-        formatRupiah,
+    loadPayroll,
 
-    showToast:
-        showToast
+    loadCash,
+
+    loadEmployees,
+
+    loadHistory,
+
+    openConfirmModal,
+
+    closeConfirmModal,
+
+    openSalaryPaymentByIndex,
+
+    confirmSalaryPayment,
+
+    updateIncomePreview,
+
+    updateDescriptionCounter,
+
+    formatRupiah,
+
+    formatNumber
+
 };
 
 
 /* ================================================================
-   COMPATIBILITY ALIAS
-   ================================================================ */
+   41. COMPATIBILITY ALIAS
+   Menjamin nama fungsi lama tetap tersedia jika dipanggil
+   oleh elemen HTML.
+================================================================ */
 
-window.loadData =
-    loadAppData;
+window.addIncome =
+    addIncome;
 
-window.refreshData =
-    loadAppData;
+window.addExpense =
+    addExpense;
 
-window.formatRupiah =
-    formatRupiah;
-```
+window.openSalaryPaymentByIndex =
+    openSalaryPaymentByIndex;
+
+window.openConfirmModal =
+    openConfirmModal;
+
+window.closeConfirmModal =
+    closeConfirmModal;
+
+window.confirmSalaryPayment =
+    confirmSalaryPayment;
+
+
+/* ================================================================
+   END OF SCRIPT.JS
+================================================================ */
