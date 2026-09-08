@@ -1,11 +1,18 @@
+```html
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="theme-color"
+        content="#1b8f5a"
     >
 
     <meta
@@ -13,101 +20,158 @@
         content="Aplikasi Keuangan Pokja Pengelolaan Sampah Adiwiyata"
     >
 
-    <meta name="theme-color" content="#7c3aed">
-
-    <title>Keuangan Pokja Adiwiyata</title>
+    <title>
+        Keuangan Pokja Adiwiyata
+    </title>
 
     <!-- =========================================================
-         GOOGLE FONT
+         FONT
          ========================================================= -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
     <link
-        href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:wght@400;500;600;700;800;900&display=swap"
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet"
     >
 
     <!-- =========================================================
-         ICON
+         CSS
          ========================================================= -->
+
     <link
         rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6TaK5GZQYx0R1b4fP3xFQJf3r3w4Y3hY0Rr7Y0k2cX8g=="
-        crossorigin="anonymous"
-        referrerpolicy="no-referrer"
+        href="style.css"
     >
-
-    <!-- =========================================================
-         STYLE
-         ========================================================= -->
-    <link rel="stylesheet" href="style.css">
 </head>
+
 
 <body>
 
-<!-- =============================================================
-     BACKGROUND DECORATION
-     ============================================================= -->
+    <!-- =========================================================
+         APP LOADER
+         ========================================================= -->
 
-<div class="background-decoration" aria-hidden="true">
-    <span class="bubble bubble-1"></span>
-    <span class="bubble bubble-2"></span>
-    <span class="bubble bubble-3"></span>
-    <span class="bubble bubble-4"></span>
+    <div
+        id="appLoader"
+        class="app-loader"
+        aria-hidden="true"
+    >
 
-    <span class="shape shape-1"></span>
-    <span class="shape shape-2"></span>
-    <span class="shape shape-3"></span>
-</div>
+        <div class="loader-card">
+
+            <div class="loader-icon">
+                💰
+            </div>
+
+            <div class="loader-spinner"></div>
+
+            <h2>
+                Menyiapkan Keuangan...
+            </h2>
+
+            <p>
+                Menghubungkan ke database Pokja
+            </p>
+
+        </div>
+
+    </div>
 
 
-<!-- =============================================================
-     APP WRAPPER
-     ============================================================= -->
+    <!-- =========================================================
+         TOAST
+         Dibuat juga oleh script.js bila belum ada.
+         ========================================================= -->
 
-<div id="app" class="app">
+    <div
+        id="toastContainer"
+        class="toast-container"
+        aria-live="polite"
+        aria-atomic="true"
+    ></div>
+
+
+    <!-- =========================================================
+         SIDEBAR OVERLAY
+         ========================================================= -->
+
+    <div
+        id="sidebarOverlay"
+        class="sidebar-overlay"
+    ></div>
+
 
     <!-- =========================================================
          SIDEBAR
          ========================================================= -->
 
-    <aside id="sidebar" class="sidebar">
+    <aside
+        id="sidebar"
+        class="sidebar"
+    >
 
-        <!-- Brand -->
-        <div class="sidebar-brand">
+        <div class="sidebar-header">
 
-            <div class="brand-icon">
-                <span>💰</span>
+            <div class="brand-logo">
+                🌱
             </div>
 
             <div class="brand-text">
-                <strong>KEUANGAN</strong>
-                <span>POKJA ADIWIYATA</span>
-            </div>
 
-        </div>
+                <strong>
+                    KEUANGAN
+                </strong>
 
+                <span>
+                    POKJA ADIWIYATA
+                </span>
 
-        <!-- Navigation -->
-        <nav class="sidebar-nav" aria-label="Navigasi utama">
-
-            <div class="nav-label">
-                MENU UTAMA
             </div>
 
             <button
                 type="button"
+                id="closeSidebar"
+                class="sidebar-close"
+                aria-label="Tutup menu"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="sidebar-divider"></div>
+
+
+        <!-- =====================================================
+             NAVIGATION
+             ===================================================== -->
+
+        <nav
+            class="sidebar-nav"
+            aria-label="Navigasi utama"
+        >
+
+            <button
+                type="button"
                 class="nav-item active"
-                data-section="dashboard"
-                data-target="dashboard"
+                data-menu="dashboardSection"
             >
                 <span class="nav-icon">
-                    <i class="fa-solid fa-house"></i>
+                    🏠
                 </span>
 
-                <span class="nav-text">
+                <span>
                     Dashboard
                 </span>
             </button>
@@ -116,14 +180,73 @@
             <button
                 type="button"
                 class="nav-item"
-                data-section="pegawai"
-                data-target="pegawai"
+                data-menu="incomeSection"
             >
                 <span class="nav-icon">
-                    <i class="fa-solid fa-users"></i>
+                    💵
                 </span>
 
-                <span class="nav-text">
+                <span>
+                    Pemasukan
+                </span>
+            </button>
+
+
+            <button
+                type="button"
+                class="nav-item"
+                data-menu="expenseSection"
+            >
+                <span class="nav-icon">
+                    🛒
+                </span>
+
+                <span>
+                    Pengeluaran
+                </span>
+            </button>
+
+
+            <button
+                type="button"
+                class="nav-item"
+                data-menu="payrollSection"
+            >
+                <span class="nav-icon">
+                    💰
+                </span>
+
+                <span>
+                    Pembagian Gaji
+                </span>
+            </button>
+
+
+            <button
+                type="button"
+                class="nav-item"
+                data-menu="cashSection"
+            >
+                <span class="nav-icon">
+                    🏦
+                </span>
+
+                <span>
+                    Total Kas
+                </span>
+            </button>
+
+
+            <button
+                type="button"
+                class="nav-item"
+                data-menu="employeeSection"
+            >
+                <span class="nav-icon">
+                    👥
+                </span>
+
+                <span>
                     Data Pegawai
                 </span>
             </button>
@@ -132,57 +255,55 @@
             <button
                 type="button"
                 class="nav-item"
-                data-section="penggajian"
-                data-target="penggajian"
+                data-menu="historySection"
             >
                 <span class="nav-icon">
-                    <i class="fa-solid fa-money-bill-wave"></i>
+                    📜
                 </span>
 
-                <span class="nav-text">
-                    Penggajian
+                <span>
+                    Riwayat
                 </span>
             </button>
-
-
-            <div class="nav-label nav-label-spacer">
-                INFORMASI
-            </div>
 
 
             <button
                 type="button"
                 class="nav-item"
-                data-section="riwayat"
-                data-target="riwayat"
+                data-menu="guideSection"
             >
                 <span class="nav-icon">
-                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    💡
                 </span>
 
-                <span class="nav-text">
-                    Pembayaran
+                <span>
+                    Petunjuk
                 </span>
             </button>
 
         </nav>
 
 
-        <!-- Sidebar Bottom -->
-        <div class="sidebar-bottom">
+        <div class="sidebar-footer">
 
-            <div class="sidebar-mini-card">
+            <div class="connection-box">
 
-                <div class="mini-card-icon">
-                    🌱
-                </div>
+                <span
+                    class="connection-dot"
+                    id="connectionDot"
+                ></span>
 
-                <div>
-                    <strong>Pokja Adiwiyata</strong>
-                    <small>Kelola keuangan dengan tertib</small>
-                </div>
+                <span
+                    id="connectionStatus"
+                >
+                    Menghubungkan...
+                </span>
 
             </div>
+
+            <small>
+                Sistem Keuangan Pokja
+            </small>
 
         </div>
 
@@ -190,38 +311,46 @@
 
 
     <!-- =========================================================
-         MAIN AREA
+         MAIN APP
          ========================================================= -->
 
-    <main class="main-content">
+    <main
+        id="mainContent"
+        class="main-content"
+    >
+
 
         <!-- =====================================================
              TOPBAR
              ===================================================== -->
 
-        <header class="topbar">
+        <header
+            id="topbar"
+            class="topbar"
+        >
 
             <div class="topbar-left">
 
-                <!-- Mobile menu -->
                 <button
                     type="button"
                     id="menuToggle"
                     class="menu-toggle"
                     aria-label="Buka menu"
                 >
-                    <i class="fa-solid fa-bars"></i>
+                    ☰
                 </button>
 
 
                 <div class="page-heading">
 
-                    <div class="page-kicker">
-                        🌿 SISTEM KEUANGAN
-                    </div>
+                    <span
+                        class="page-kicker"
+                    >
+                        🌱 POKJA ADIWIYATA
+                    </span>
 
-                    <h1 id="pageTitle">
-                        Dashboard
+                    <h1>
+                        Keuangan Pokja
                     </h1>
 
                 </div>
@@ -231,30 +360,36 @@
 
             <div class="topbar-right">
 
-                <!-- Connection status -->
                 <div
-                    id="connectionStatus"
-                    class="connection-status"
-                    title="Status koneksi"
+                    class="today-badge"
+                    id="todayBadge"
                 >
 
-                    <span class="connection-dot"></span>
+                    <span>
+                        📅
+                    </span>
 
-                    <span class="connection-text">
-                        Menghubungkan...
+                    <span
+                        id="currentDateDisplay"
+                    >
+                        -
                     </span>
 
                 </div>
 
 
-                <!-- Current date -->
-                <div
-                    id="currentDate"
-                    class="current-date"
+                <button
+                    type="button"
+                    id="refreshButton"
+                    class="btn-refresh"
+                    data-action="refresh"
+                    title="Perbarui data"
                 >
-                    <i class="fa-regular fa-calendar"></i>
-                    <span>Memuat tanggal...</span>
-                </div>
+                    🔄
+                    <span>
+                        Refresh
+                    </span>
+                </button>
 
             </div>
 
@@ -262,427 +397,930 @@
 
 
         <!-- =====================================================
-             CONTENT
+             PAGE CONTENT
              ===================================================== -->
 
-        <div class="content-container">
+        <div class="page-container">
 
 
             <!-- =================================================
-                 DASHBOARD SECTION
+                 DASHBOARD
                  ================================================= -->
 
             <section
-                id="dashboard"
-                class="page-section active"
-                data-page="dashboard"
+                id="dashboardSection"
+                class="page-section"
             >
 
-                <!-- Hero -->
-                <div class="hero-card">
+                <div class="hero-banner">
 
                     <div class="hero-content">
 
-                        <div class="hero-badge">
-                            <span>✨</span>
-                            SISTEM KEUANGAN POKJA
+                        <div class="hero-icon">
+                            💚
                         </div>
 
+                        <div>
+
+                            <span class="hero-small">
+                                SELAMAT DATANG
+                            </span>
+
+                            <h2>
+                                Dashboard Keuangan Pokja
+                            </h2>
+
+                            <p>
+                                Pantau pemasukan, pengeluaran,
+                                kas, dan penggajian secara
+                                terintegrasi.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="hero-date">
+
+                        <span>
+                            Hari ini
+                        </span>
+
+                        <strong
+                            id="heroDate"
+                        >
+                            -
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                     SUMMARY CARDS
+                     ================================================= -->
+
+                <div class="dashboard-grid">
+
+
+                    <article
+                        class="summary-card income-card"
+                    >
+
+                        <div class="summary-icon">
+                            💵
+                        </div>
+
+                        <div class="summary-info">
+
+                            <span>
+                                Total Pemasukan
+                            </span>
+
+                            <strong
+                                id="totalIncome"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+
+                    <article
+                        class="summary-card cash-card"
+                    >
+
+                        <div class="summary-icon">
+                            🏦
+                        </div>
+
+                        <div class="summary-info">
+
+                            <span>
+                                30% Kas Pokja
+                            </span>
+
+                            <strong
+                                id="kasAllocation"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+
+                    <article
+                        class="summary-card expense-card"
+                    >
+
+                        <div class="summary-icon">
+                            🛒
+                        </div>
+
+                        <div class="summary-info">
+
+                            <span>
+                                Total Pengeluaran
+                            </span>
+
+                            <strong
+                                id="totalExpense"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+
+                    <article
+                        class="summary-card remaining-card"
+                        data-balance-status
+                    >
+
+                        <div class="summary-icon">
+                            💚
+                        </div>
+
+                        <div class="summary-info">
+
+                            <span>
+                                Sisa Kas Pokja
+                            </span>
+
+                            <strong
+                                id="remainingCash"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+
+                    <article
+                        class="summary-card salary-fund-card"
+                    >
+
+                        <div class="summary-icon">
+                            💰
+                        </div>
+
+                        <div class="summary-info">
+
+                            <span>
+                                Dana Penggajian 70%
+                            </span>
+
+                            <strong
+                                id="salaryFund"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+
+                    <article
+                        class="summary-card salary-paid-card"
+                    >
+
+                        <div class="summary-icon">
+                            ✅
+                        </div>
+
+                        <div class="summary-info">
+
+                            <span>
+                                Gaji Telah Dibayar
+                            </span>
+
+                            <strong
+                                id="totalSalaryPaid"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+
+                    <article
+                        class="summary-card salary-left-card"
+                    >
+
+                        <div class="summary-icon">
+                            🪙
+                        </div>
+
+                        <div class="summary-info">
+
+                            <span>
+                                Sisa Dana Gaji
+                            </span>
+
+                            <strong
+                                id="remainingSalaryFund"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+
+                    <article
+                        class="summary-card salary-unpaid-card"
+                    >
+
+                        <div class="summary-icon">
+                            ⏳
+                        </div>
+
+                        <div class="summary-info">
+
+                            <span>
+                                Gaji Belum Dibayar
+                            </span>
+
+                            <strong
+                                id="totalSalaryUnpaid"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+                </div>
+
+
+                <!-- =================================================
+                     EMPLOYEE STATUS
+                     ================================================= -->
+
+                <div class="mini-stat-grid">
+
+                    <div class="mini-stat">
+
+                        <span class="mini-stat-icon">
+                            👥
+                        </span>
+
+                        <div>
+
+                            <small>
+                                Total Pegawai
+                            </small>
+
+                            <strong
+                                id="totalEmployees"
+                            >
+                                0
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="mini-stat">
+
+                        <span class="mini-stat-icon">
+                            ✅
+                        </span>
+
+                        <div>
+
+                            <small>
+                                Sudah Dibayar
+                            </small>
+
+                            <strong
+                                id="paidEmployees"
+                            >
+                                0
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="mini-stat">
+
+                        <span class="mini-stat-icon">
+                            ⏳
+                        </span>
+
+                        <div>
+
+                            <small>
+                                Belum Dibayar
+                            </small>
+
+                            <strong
+                                id="unpaidEmployees"
+                            >
+                                0
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 PEMASUKAN
+                 ================================================= -->
+
+            <section
+                id="incomeSection"
+                class="page-section"
+            >
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <span class="section-kicker">
+                            💵 TRANSAKSI
+                        </span>
+
                         <h2>
-                            Kelola Keuangan
-                            <br>
-                            <span>Lebih Mudah & Teratur!</span>
+                            Pemasukan
                         </h2>
 
                         <p>
-                            Pantau pemasukan, pengeluaran, penggajian,
-                            dan pembayaran pegawai dalam satu tempat.
+                            Catat seluruh pemasukan Pokja.
+                            Sistem otomatis membagi 30% untuk
+                            Kas Pokja dan 70% untuk penggajian.
                         </p>
 
                     </div>
 
-
-                    <div class="hero-illustration" aria-hidden="true">
-
-                        <div class="hero-coin coin-1">💰</div>
-                        <div class="hero-coin coin-2">🪙</div>
-                        <div class="hero-coin coin-3">💵</div>
-
-                        <div class="hero-main-icon">
-                            🌱
-                        </div>
-
-                    </div>
-
                 </div>
 
 
-                <!-- Dashboard Statistics -->
-                <div class="stats-grid">
+                <div class="content-card form-card">
 
-                    <!-- Total pemasukan -->
-                    <div class="stat-card stat-income">
+                    <div class="card-title-row">
 
-                        <div class="stat-icon">
-                            <i class="fa-solid fa-arrow-trend-up"></i>
+                        <div class="card-title-icon">
+                            ➕
                         </div>
 
-                        <div class="stat-info">
+                        <div>
 
-                            <span class="stat-label">
-                                TOTAL PEMASUKAN
-                            </span>
+                            <h3>
+                                Tambah Pemasukan
+                            </h3>
 
-                            <strong
-                                id="totalPemasukan"
-                                class="stat-value"
-                            >
-                                Rp0
-                            </strong>
+                            <p>
+                                Isi data pemasukan di bawah ini.
+                            </p>
 
-                        </div>
-
-                        <div class="stat-decoration">
-                            ↗
                         </div>
 
                     </div>
 
 
-                    <!-- Total penggajian -->
-                    <div class="stat-card stat-salary">
+                    <form
+                        id="incomeForm"
+                        class="transaction-form"
+                        autocomplete="off"
+                    >
 
-                        <div class="stat-icon">
-                            <i class="fa-solid fa-wallet"></i>
-                        </div>
-
-                        <div class="stat-info">
-
-                            <span class="stat-label">
-                                DANA PENGGAJIAN
-                            </span>
-
-                            <strong
-                                id="totalPenggajian"
-                                class="stat-value"
-                            >
-                                Rp0
-                            </strong>
-
-                        </div>
-
-                        <div class="stat-decoration">
-                            💸
-                        </div>
-
-                    </div>
+                        <div class="form-grid">
 
 
-                    <!-- Total pegawai -->
-                    <div class="stat-card stat-employees">
+                            <div class="form-group">
 
-                        <div class="stat-icon">
-                            <i class="fa-solid fa-user-group"></i>
-                        </div>
+                                <label
+                                    for="incomeDate"
+                                >
+                                    📅 Tanggal
+                                </label>
 
-                        <div class="stat-info">
+                                <input
+                                    type="date"
+                                    id="incomeDate"
+                                    name="incomeDate"
+                                    required
+                                >
 
-                            <span class="stat-label">
-                                TOTAL PEGAWAI
-                            </span>
-
-                            <strong
-                                id="totalPegawai"
-                                class="stat-value"
-                            >
-                                0
-                            </strong>
-
-                        </div>
-
-                        <div class="stat-decoration">
-                            👥
-                        </div>
-
-                    </div>
-
-
-                    <!-- Sudah dibayar -->
-                    <div class="stat-card stat-paid">
-
-                        <div class="stat-icon">
-                            <i class="fa-solid fa-circle-check"></i>
-                        </div>
-
-                        <div class="stat-info">
-
-                            <span class="stat-label">
-                                SUDAH DIBAYAR
-                            </span>
-
-                            <strong
-                                id="totalSudahDibayar"
-                                class="stat-value"
-                            >
-                                0
-                            </strong>
-
-                        </div>
-
-                        <div class="stat-decoration">
-                            🎉
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- Dashboard Content -->
-                <div class="dashboard-grid">
-
-
-                    <!-- Payroll Summary -->
-                    <div class="panel-card">
-
-                        <div class="panel-header">
-
-                            <div>
-
-                                <span class="panel-kicker">
-                                    📊 RINGKASAN
-                                </span>
-
-                                <h3>
-                                    Status Penggajian
-                                </h3>
+                                <small>
+                                    Dapat dipilih manual.
+                                </small>
 
                             </div>
 
-                            <button
-                                type="button"
-                                class="panel-action"
-                                data-section="penggajian"
-                            >
-                                Lihat Semua
-                                <i class="fa-solid fa-arrow-right"></i>
-                            </button>
+
+                            <div class="form-group">
+
+                                <label
+                                    for="incomeAmount"
+                                >
+                                    💰 Nominal Pemasukan
+                                </label>
+
+                                <div class="money-input">
+
+                                    <span>
+                                        Rp
+                                    </span>
+
+                                    <input
+                                        type="number"
+                                        id="incomeAmount"
+                                        name="incomeAmount"
+                                        min="1"
+                                        step="1"
+                                        inputmode="numeric"
+                                        placeholder="0"
+                                        required
+                                    >
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="form-group form-group-wide">
+
+                                <label
+                                    for="incomeSource"
+                                >
+                                    📝 Keterangan Pemasukan
+                                </label>
+
+                                <select
+                                    id="incomeSource"
+                                    name="incomeSource"
+                                    required
+                                >
+
+                                    <option value="">
+                                        Pilih keterangan pemasukan
+                                    </option>
+
+                                    <option value="Penjualan Botol">
+                                        Penjualan Botol
+                                    </option>
+
+                                    <option value="Penjualan Pupuk">
+                                        Penjualan Pupuk
+                                    </option>
+
+                                    <option value="Bantuan Sekolah">
+                                        Bantuan Sekolah
+                                    </option>
+
+                                    <option value="Sumbangan">
+                                        Sumbangan
+                                    </option>
+
+                                    <option value="Proposal">
+                                        Proposal
+                                    </option>
+
+                                </select>
+
+                            </div>
 
                         </div>
 
 
-                        <div
-                            id="dashboardPayrollSummary"
-                            class="dashboard-payroll-summary"
-                        >
+                        <div class="allocation-preview">
 
-                            <!-- Diisi script.js -->
+                            <div>
 
-                            <div class="empty-state compact">
+                                <span>
+                                    🏦 30% Kas Pokja
+                                </span>
 
-                                <div class="empty-icon">
-                                    💰
-                                </div>
+                                <strong
+                                    id="incomeKasPreview"
+                                >
+                                    Rp 0
+                                </strong>
 
-                                <strong>
-                                    Memuat data...
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    💰 70% Penggajian
+                                </span>
+
+                                <strong
+                                    id="incomeSalaryPreview"
+                                >
+                                    Rp 0
                                 </strong>
 
                             </div>
 
                         </div>
 
+
+                        <div class="form-actions">
+
+                            <button
+                                type="reset"
+                                class="btn-secondary"
+                            >
+                                ↩ Reset
+                            </button>
+
+                            <button
+                                type="submit"
+                                class="btn-primary"
+                            >
+                                💾 Simpan Pemasukan
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+
+                <!-- TABLE -->
+
+                <div class="content-card table-card">
+
+                    <div class="table-card-header">
+
+                        <div>
+
+                            <h3>
+                                Daftar Pemasukan
+                            </h3>
+
+                            <p>
+                                Data tersimpan di sheet PEMASUKAN.
+                            </p>
+
+                        </div>
+
+                        <span class="table-count-badge">
+                            PEMASUKAN
+                        </span>
+
                     </div>
 
 
-                    <!-- Quick Actions -->
-                    <div class="panel-card quick-panel">
+                    <div class="table-wrapper">
 
-                        <div class="panel-header">
+                        <table>
 
-                            <div>
+                            <thead>
 
-                                <span class="panel-kicker">
-                                    ⚡ AKSES CEPAT
-                                </span>
+                                <tr>
 
-                                <h3>
-                                    Menu Cepat
-                                </h3>
+                                    <th>
+                                        Tanggal
+                                    </th>
+
+                                    <th>
+                                        Nominal
+                                    </th>
+
+                                    <th>
+                                        Sumber Dana
+                                    </th>
+
+                                    <th>
+                                        30% Kas
+                                    </th>
+
+                                    <th>
+                                        70% Gaji
+                                    </th>
+
+                                    <th>
+                                        Bulan
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody
+                                id="incomeTableBody"
+                            >
+
+                                <tr>
+                                    <td
+                                        colspan="6"
+                                        class="loading-cell"
+                                    >
+                                        Memuat data...
+                                    </td>
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 PENGELUARAN
+                 ================================================= -->
+
+            <section
+                id="expenseSection"
+                class="page-section"
+            >
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <span class="section-kicker">
+                            🛒 TRANSAKSI
+                        </span>
+
+                        <h2>
+                            Pengeluaran
+                        </h2>
+
+                        <p>
+                            Catat pengeluaran yang menggunakan
+                            Kas Pokja.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="content-card form-card">
+
+                    <div class="card-title-row">
+
+                        <div class="card-title-icon">
+                            🛒
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Tambah Pengeluaran
+                            </h3>
+
+                            <p>
+                                Pastikan nominal sesuai dengan
+                                bukti transaksi.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <form
+                        id="expenseForm"
+                        class="transaction-form"
+                        autocomplete="off"
+                    >
+
+                        <div class="form-grid">
+
+
+                            <div class="form-group">
+
+                                <label
+                                    for="expenseDate"
+                                >
+                                    📅 Tanggal
+                                </label>
+
+                                <input
+                                    type="date"
+                                    id="expenseDate"
+                                    name="expenseDate"
+                                    required
+                                >
+
+                                <small>
+                                    Dapat dipilih manual.
+                                </small>
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label
+                                    for="expenseAmount"
+                                >
+                                    💰 Nominal Pengeluaran
+                                </label>
+
+                                <div class="money-input">
+
+                                    <span>
+                                        Rp
+                                    </span>
+
+                                    <input
+                                        type="number"
+                                        id="expenseAmount"
+                                        name="expenseAmount"
+                                        min="1"
+                                        step="1"
+                                        inputmode="numeric"
+                                        placeholder="0"
+                                        required
+                                    >
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="form-group form-group-wide">
+
+                                <label
+                                    for="expenseDescription"
+                                >
+                                    📝 Deskripsi Pengeluaran
+                                </label>
+
+                                <textarea
+                                    id="expenseDescription"
+                                    name="expenseDescription"
+                                    rows="5"
+                                    maxlength="3000"
+                                    placeholder="Jelaskan keperluan pengeluaran..."
+                                    required
+                                ></textarea>
+
+
+                                <div
+                                    id="descriptionCounter"
+                                    class="input-counter"
+                                >
+
+                                    <span>
+                                        Maksimal
+                                        <strong
+                                            data-max-description-words
+                                        >
+                                            300
+                                        </strong>
+                                        kata
+                                    </span>
+
+                                    <span
+                                        id="descriptionWordCount"
+                                    >
+                                        0/300 kata
+                                    </span>
+
+                                </div>
 
                             </div>
 
                         </div>
 
 
-                        <div class="quick-actions">
+                        <div class="warning-box">
+
+                            <span>
+                                💡
+                            </span>
+
+                            <p>
+                                Pengeluaran dicatat sebagai
+                                pengeluaran Kas Pokja.
+                                Pastikan saldo kas mencukupi.
+                            </p>
+
+                        </div>
+
+
+                        <div class="form-actions">
 
                             <button
-                                type="button"
-                                class="quick-action"
-                                data-section="penggajian"
+                                type="reset"
+                                class="btn-secondary"
                             >
-
-                                <span class="quick-action-icon purple">
-                                    💰
-                                </span>
-
-                                <span>
-                                    <strong>
-                                        Penggajian
-                                    </strong>
-
-                                    <small>
-                                        Kelola pembayaran gaji
-                                    </small>
-                                </span>
-
-                                <i class="fa-solid fa-chevron-right"></i>
-
+                                ↩ Reset
                             </button>
 
-
                             <button
-                                type="button"
-                                class="quick-action"
-                                data-section="pegawai"
+                                type="submit"
+                                class="btn-primary"
                             >
-
-                                <span class="quick-action-icon green">
-                                    👥
-                                </span>
-
-                                <span>
-                                    <strong>
-                                        Data Pegawai
-                                    </strong>
-
-                                    <small>
-                                        Lihat daftar pegawai
-                                    </small>
-                                </span>
-
-                                <i class="fa-solid fa-chevron-right"></i>
-
-                            </button>
-
-
-                            <button
-                                type="button"
-                                class="quick-action"
-                                data-section="riwayat"
-                            >
-
-                                <span class="quick-action-icon orange">
-                                    🧾
-                                </span>
-
-                                <span>
-                                    <strong>
-                                        Riwayat Pembayaran
-                                    </strong>
-
-                                    <small>
-                                        Lihat status pembayaran
-                                    </small>
-                                </span>
-
-                                <i class="fa-solid fa-chevron-right"></i>
-
+                                💾 Simpan Pengeluaran
                             </button>
 
                         </div>
 
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            <!-- =================================================
-                 PEGAWAI SECTION
-                 ================================================= -->
-
-            <section
-                id="pegawai"
-                class="page-section"
-                data-page="pegawai"
-            >
-
-                <div class="section-intro">
-
-                    <div>
-
-                        <span class="section-kicker">
-                            👥 DATA MASTER
-                        </span>
-
-                        <h2>
-                            Data Pegawai
-                        </h2>
-
-                        <p>
-                            Daftar pegawai dan poin yang digunakan
-                            dalam sistem penggajian.
-                        </p>
-
-                    </div>
-
-                    <div class="section-badge">
-                        <span id="employeeCountBadge">
-                            0 Pegawai
-                        </span>
-                    </div>
+                    </form>
 
                 </div>
 
 
-                <!-- Employee Search -->
-                <div class="toolbar-card">
+                <!-- TABLE -->
 
-                    <div class="search-box">
+                <div class="content-card table-card">
 
-                        <i class="fa-solid fa-magnifying-glass"></i>
+                    <div class="table-card-header">
 
-                        <input
-                            type="search"
-                            id="searchEmployee"
-                            placeholder="Cari nama pegawai atau jabatan..."
-                            autocomplete="off"
-                        >
+                        <div>
 
-                        <button
-                            type="button"
-                            id="clearEmployeeSearch"
-                            class="clear-search"
-                            aria-label="Hapus pencarian"
-                        >
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
+                            <h3>
+                                Daftar Pengeluaran
+                            </h3>
+
+                            <p>
+                                Data tersimpan di sheet
+                                PENGELUARAN.
+                            </p>
+
+                        </div>
+
+                        <span class="table-count-badge">
+                            PENGELUARAN
+                        </span>
 
                     </div>
 
-                </div>
 
+                    <div class="table-wrapper">
 
-                <!-- Employee List -->
-                <div
-                    id="employeeList"
-                    class="employee-grid"
-                >
+                        <table>
 
-                    <div class="loading-state">
+                            <thead>
 
-                        <div class="loading-spinner"></div>
+                                <tr>
 
-                        <strong>
-                            Memuat data pegawai...
-                        </strong>
+                                    <th>
+                                        Tanggal
+                                    </th>
 
-                        <span>
-                            Mohon tunggu sebentar.
-                        </span>
+                                    <th>
+                                        Nominal
+                                    </th>
+
+                                    <th>
+                                        Deskripsi Pengeluaran
+                                    </th>
+
+                                    <th>
+                                        Bulan
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody
+                                id="expenseTableBody"
+                            >
+
+                                <tr>
+
+                                    <td
+                                        colspan="4"
+                                        class="loading-cell"
+                                    >
+                                        Memuat data...
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
 
                     </div>
 
@@ -692,16 +1330,15 @@
 
 
             <!-- =================================================
-                 PENGGAJIAN SECTION
+                 PENGGAJIAN
                  ================================================= -->
 
             <section
-                id="penggajian"
+                id="payrollSection"
                 class="page-section"
-                data-page="penggajian"
             >
 
-                <div class="section-intro">
+                <div class="section-heading">
 
                     <div>
 
@@ -710,1507 +1347,1906 @@
                         </span>
 
                         <h2>
-                            Penggajian Pegawai
+                            Pembagian Gaji Pegawai
                         </h2>
 
                         <p>
-                            Kelola dan tandai pembayaran gaji
-                            berdasarkan bulan dan status.
+                            Sistem menghitung nilai 1 poin dan
+                            gaji masing-masing pegawai secara
+                            otomatis berdasarkan data PEGAWAI.
                         </p>
 
                     </div>
 
-                    <div
-                        id="payrollConnectionBadge"
-                        class="section-badge"
-                    >
-                        <span>
-                            💳 Sistem Pembayaran
-                        </span>
-                    </div>
-
                 </div>
 
 
-                <!-- =================================================
-                     PAYROLL CONTROL
-                     ================================================= -->
+                <!-- PAYROLL CONTROL -->
 
-                <div class="toolbar-card payroll-toolbar">
+                <div class="content-card payroll-control-card">
 
-                    <!-- Month -->
-                    <div class="toolbar-group">
+                    <div class="payroll-month-control">
 
-                        <label for="monthFilter">
-                            <i class="fa-regular fa-calendar"></i>
-                            Bulan Penggajian
-                        </label>
-
-                        <div class="select-wrapper">
-
-                            <select id="monthFilter">
-
-                                <option value="">
-                                    Memuat bulan...
-                                </option>
-
-                            </select>
-
-                            <i class="fa-solid fa-chevron-down"></i>
-
+                        <div class="month-icon">
+                            📅
                         </div>
 
-                    </div>
+                        <div>
 
-
-                    <!-- Secondary month selector compatibility -->
-                    <div
-                        class="toolbar-group"
-                        id="filterBulanGroup"
-                    >
-
-                        <label for="filterBulan">
-                            <i class="fa-solid fa-filter"></i>
-                            Filter
-                        </label>
-
-                        <div class="select-wrapper">
-
-                            <select id="filterBulan">
-
-                                <option value="all">
-                                    Semua Data
-                                </option>
-
-                            </select>
-
-                            <i class="fa-solid fa-chevron-down"></i>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- Search -->
-                    <div class="toolbar-group toolbar-search">
-
-                        <label for="payrollSearch">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            Cari Pegawai
-                        </label>
-
-                        <div class="search-box">
-
-                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <label
+                                for="payrollMonth"
+                            >
+                                Bulan Penggajian
+                            </label>
 
                             <input
-                                type="search"
-                                id="payrollSearch"
-                                placeholder="Nama atau jabatan..."
-                                autocomplete="off"
+                                type="month"
+                                id="payrollMonth"
+                                name="payrollMonth"
                             >
-
-                            <button
-                                type="button"
-                                id="clearPayrollSearch"
-                                class="clear-search"
-                                aria-label="Hapus pencarian"
-                            >
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
 
                         </div>
 
                     </div>
 
 
-                    <!-- Payment status -->
-                    <div class="toolbar-group">
+                    <div class="payroll-fund-info">
 
-                        <label for="paymentFilter">
-                            <i class="fa-solid fa-credit-card"></i>
-                            Status
-                        </label>
+                        <div>
 
-                        <div class="select-wrapper">
+                            <small>
+                                Dana Penggajian
+                            </small>
 
-                            <select id="paymentFilter">
+                            <strong
+                                id="salaryFundMonth"
+                            >
+                                Rp 0
+                            </strong>
 
-                                <option value="all">
-                                    Semua Status
-                                </option>
+                        </div>
 
-                                <option value="BELUM DIBAYAR">
-                                    Belum Dibayar
-                                </option>
 
-                                <option value="SUDAH DIBAYAR">
-                                    Sudah Dibayar
-                                </option>
+                        <div>
 
-                            </select>
+                            <small>
+                                Total Poin
+                            </small>
 
-                            <i class="fa-solid fa-chevron-down"></i>
+                            <strong
+                                id="payrollTotalPoints"
+                            >
+                                0
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <small>
+                                Nilai 1 Poin
+                            </small>
+
+                            <strong
+                                id="valuePerPoint"
+                            >
+                                Rp 0
+                            </strong>
 
                         </div>
 
                     </div>
-
-
-                    <!-- Refresh -->
-                    <button
-                        type="button"
-                        id="refreshPayroll"
-                        class="refresh-button"
-                        title="Muat ulang data"
-                    >
-                        <i class="fa-solid fa-rotate"></i>
-                        <span>Refresh</span>
-                    </button>
 
                 </div>
 
 
-                <!-- =================================================
-                     PAYROLL SUMMARY CARDS
-                     ================================================= -->
+                <!-- PAYROLL SUMMARY -->
 
                 <div class="payroll-summary-grid">
 
-                    <div class="mini-stat-card">
+                    <div class="payroll-summary-item">
 
-                        <span class="mini-stat-icon">
-                            👥
+                        <span>
+                            💰 Total Gaji
                         </span>
 
-                        <div>
-                            <small>
-                                Pegawai
-                            </small>
-
-                            <strong id="payrollEmployeeCount">
-                                0
-                            </strong>
-                        </div>
-
-                    </div>
-
-
-                    <div class="mini-stat-card">
-
-                        <span class="mini-stat-icon">
-                            💵
-                        </span>
-
-                        <div>
-                            <small>
-                                Total Gaji
-                            </small>
-
-                            <strong id="payrollTotalSalary">
-                                Rp0
-                            </strong>
-                        </div>
-
-                    </div>
-
-
-                    <div class="mini-stat-card">
-
-                        <span class="mini-stat-icon">
-                            ✅
-                        </span>
-
-                        <div>
-                            <small>
-                                Sudah Dibayar
-                            </small>
-
-                            <strong id="payrollPaidCount">
-                                0
-                            </strong>
-                        </div>
-
-                    </div>
-
-
-                    <div class="mini-stat-card">
-
-                        <span class="mini-stat-icon">
-                            ⏳
-                        </span>
-
-                        <div>
-                            <small>
-                                Belum Dibayar
-                            </small>
-
-                            <strong id="payrollUnpaidCount">
-                                0
-                            </strong>
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- =================================================
-                     PAYROLL LIST
-                     ================================================= -->
-
-                <div class="payroll-panel panel-card">
-
-                    <div class="panel-header payroll-panel-header">
-
-                        <div>
-
-                            <span class="panel-kicker">
-                                📋 DAFTAR GAJI
-                            </span>
-
-                            <h3>
-                                Rincian Penggajian
-                            </h3>
-
-                        </div>
-
-
-                        <div
-                            id="payrollResultInfo"
-                            class="result-info"
+                        <strong
+                            id="payrollTotal"
                         >
-                            0 data
-                        </div>
+                            Rp 0
+                        </strong>
 
                     </div>
 
 
-                    <div
-                        id="payrollList"
-                        class="payroll-list"
-                    >
+                    <div class="payroll-summary-item">
 
-                        <div class="loading-state">
-
-                            <div class="loading-spinner"></div>
-
-                            <strong>
-                                Memuat data penggajian...
-                            </strong>
-
-                            <span>
-                                Menghubungkan ke spreadsheet.
-                            </span>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- Empty state -->
-                    <div
-                        id="payrollEmpty"
-                        class="empty-state hidden"
-                    >
-
-                        <div class="empty-icon">
-                            🧾
-                        </div>
-
-                        <h3>
-                            Data Tidak Ditemukan
-                        </h3>
-
-                        <p>
-                            Tidak ada data yang sesuai dengan
-                            filter yang dipilih.
-                        </p>
-
-                        <button
-                            type="button"
-                            class="secondary-button"
-                            id="resetPayrollFilter"
-                        >
-                            <i class="fa-solid fa-filter-circle-xmark"></i>
-                            Reset Filter
-                        </button>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            <!-- =================================================
-                 RIWAYAT / PEMBAYARAN SECTION
-                 ================================================= -->
-
-            <section
-                id="riwayat"
-                class="page-section"
-                data-page="riwayat"
-            >
-
-                <div class="section-intro">
-
-                    <div>
-
-                        <span class="section-kicker">
-                            🧾 PEMBAYARAN
+                        <span>
+                            ✅ Sudah Dibayar
                         </span>
 
-                        <h2>
-                            Riwayat Pembayaran
-                        </h2>
-
-                        <p>
-                            Pantau pegawai yang sudah dan belum
-                            menerima pembayaran gaji.
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <!-- Payment Summary -->
-                <div class="payment-overview-grid">
-
-                    <div class="overview-card paid">
-
-                        <div class="overview-icon">
-                            ✅
-                        </div>
-
-                        <div>
-
-                            <small>
-                                SUDAH DIBAYAR
-                            </small>
-
-                            <strong id="historyPaidCount">
-                                0
-                            </strong>
-
-                        </div>
+                        <strong
+                            id="payrollPaid"
+                        >
+                            Rp 0
+                        </strong>
 
                     </div>
 
 
-                    <div class="overview-card unpaid">
+                    <div class="payroll-summary-item">
 
-                        <div class="overview-icon">
-                            ⏳
-                        </div>
+                        <span>
+                            ⏳ Belum Dibayar
+                        </span>
 
-                        <div>
-
-                            <small>
-                                BELUM DIBAYAR
-                            </small>
-
-                            <strong id="historyUnpaidCount">
-                                0
-                            </strong>
-
-                        </div>
+                        <strong
+                            id="payrollUnpaid"
+                        >
+                            Rp 0
+                        </strong>
 
                     </div>
 
 
-                    <div class="overview-card total">
+                    <div class="payroll-summary-item">
 
-                        <div class="overview-icon">
-                            💰
-                        </div>
+                        <span>
+                            👥 Pegawai Dibayar
+                        </span>
 
-                        <div>
-
-                            <small>
-                                TOTAL GAJI
-                            </small>
-
-                            <strong id="historyTotalSalary">
-                                Rp0
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- History Filter -->
-                <div class="toolbar-card">
-
-                    <div class="toolbar-group">
-
-                        <label for="historyMonthFilter">
-                            <i class="fa-regular fa-calendar"></i>
-                            Bulan
-                        </label>
-
-                        <div class="select-wrapper">
-
-                            <select id="historyMonthFilter">
-
-                                <option value="">
-                                    Semua Bulan
-                                </option>
-
-                            </select>
-
-                            <i class="fa-solid fa-chevron-down"></i>
-
-                        </div>
+                        <strong
+                            id="payrollPaidCount"
+                        >
+                            0
+                        </strong>
 
                     </div>
 
 
-                    <div class="toolbar-group toolbar-search">
+                    <div class="payroll-summary-item">
 
-                        <label for="historySearch">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            Cari
-                        </label>
+                        <span>
+                            👥 Belum Dibayar
+                        </span>
 
-                        <div class="search-box">
-
-                            <i class="fa-solid fa-magnifying-glass"></i>
-
-                            <input
-                                type="search"
-                                id="historySearch"
-                                placeholder="Cari nama pegawai..."
-                                autocomplete="off"
-                            >
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- History List -->
-                <div
-                    id="paymentHistoryList"
-                    class="payment-history-list"
-                >
-
-                    <div class="loading-state">
-
-                        <div class="loading-spinner"></div>
-
-                        <strong>
-                            Memuat riwayat...
+                        <strong
+                            id="payrollUnpaidCount"
+                        >
+                            0
                         </strong>
 
                     </div>
 
                 </div>
 
+
+                <!-- PAYROLL TABLE -->
+
+                <div class="content-card table-card payroll-table-card">
+
+                    <div class="table-card-header">
+
+                        <div>
+
+                            <h3>
+                                Daftar Gaji Pegawai
+                            </h3>
+
+                            <p>
+                                Klik tombol 💰 BAYAR GAJI
+                                pada pegawai yang akan dibayar.
+                            </p>
+
+                        </div>
+
+                        <span class="table-count-badge">
+                            PENGGAJIAN
+                        </span>
+
+                    </div>
+
+
+                    <div class="table-wrapper payroll-wrapper">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Jabatan
+                                    </th>
+
+                                    <th>
+                                        Nama Pegawai
+                                    </th>
+
+                                    <th>
+                                        Poin
+                                    </th>
+
+                                    <th>
+                                        Gaji
+                                    </th>
+
+                                    <th>
+                                        Status
+                                    </th>
+
+                                    <th>
+                                        Tanggal Bayar
+                                    </th>
+
+                                    <th>
+                                        Aksi
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody
+                                id="payrollTableBody"
+                            >
+
+                                <tr>
+
+                                    <td
+                                        colspan="7"
+                                        class="loading-cell"
+                                    >
+                                        Memuat data penggajian...
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+
+                <div class="payment-note">
+
+                    <span>
+                        🔐
+                    </span>
+
+                    <p>
+                        Pembayaran gaji diproses melalui server.
+                        Status pembayaran disimpan pada database
+                        Google Spreadsheet.
+                    </p>
+
+                </div>
+
             </section>
 
 
             <!-- =================================================
-                 FOOTER
+                 KAS POKJA
                  ================================================= -->
 
-            <footer class="app-footer">
+            <section
+                id="cashSection"
+                class="page-section"
+            >
 
-                <div class="footer-left">
+                <div class="section-heading">
 
-                    <span>
-                        🌱
-                    </span>
+                    <div>
 
-                    <span>
-                        Keuangan Pokja Pengelolaan Sampah Adiwiyata
-                    </span>
+                        <span class="section-kicker">
+                            🏦 KEUANGAN
+                        </span>
 
-                </div>
+                        <h2>
+                            Total Kas Pokja
+                        </h2>
 
-                <div class="footer-right">
+                        <p>
+                            Ringkasan posisi kas Pokja berdasarkan
+                            pemasukan dan pengeluaran.
+                        </p>
 
-                    <span>
-                        Asia/Jakarta
-                    </span>
-
-                    <span class="footer-separator">
-                        •
-                    </span>
-
-                    <span>
-                        Sistem Digital
-                    </span>
+                    </div>
 
                 </div>
 
-            </footer>
+
+                <div class="cash-highlight-card"
+                     data-balance-status>
+
+                    <div class="cash-highlight-icon">
+                        🏦
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Sisa Kas Pokja
+                        </span>
+
+                        <strong
+                            id="sisaKasPokja"
+                        >
+                            Rp 0
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="cash-grid">
+
+
+                    <div class="content-card cash-detail-card">
+
+                        <div class="cash-detail-icon">
+                            💵
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Total Pemasukan
+                            </span>
+
+                            <strong
+                                id="cashTotalIncome"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="content-card cash-detail-card">
+
+                        <div class="cash-detail-icon">
+                            🏦
+                        </div>
+
+                        <div>
+
+                            <span>
+                                30% Alokasi Kas Pokja
+                            </span>
+
+                            <strong
+                                id="cashAllocationDetail"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="content-card cash-detail-card">
+
+                        <div class="cash-detail-icon">
+                            🛒
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Pengeluaran Kas Pokja
+                            </span>
+
+                            <strong
+                                id="cashTotalExpense"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="content-card cash-detail-card">
+
+                        <div class="cash-detail-icon">
+                            💰
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Dana Penggajian 70%
+                            </span>
+
+                            <strong
+                                id="cashSalaryFund"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="content-card cash-detail-card">
+
+                        <div class="cash-detail-icon">
+                            ✅
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Gaji Telah Dibayarkan
+                            </span>
+
+                            <strong
+                                id="cashSalaryPaid"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="content-card cash-detail-card">
+
+                        <div class="cash-detail-icon">
+                            🪙
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Sisa Dana Penggajian
+                            </span>
+
+                            <strong
+                                id="cashSalaryRemaining"
+                            >
+                                Rp 0
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="cash-explanation">
+
+                    <div class="cash-explanation-icon">
+                        💡
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            Cara membaca Kas Pokja
+                        </h3>
+
+                        <p>
+                            Setiap pemasukan dibagi otomatis:
+                            <strong>30%</strong> masuk alokasi
+                            Kas Pokja dan <strong>70%</strong>
+                            masuk dana penggajian.
+                        </p>
+
+                        <p>
+                            Sisa Kas Pokja dihitung berdasarkan
+                            alokasi 30% dikurangi pengeluaran Kas
+                            Pokja.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 PEGAWAI
+                 ================================================= -->
+
+            <section
+                id="employeeSection"
+                class="page-section"
+            >
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <span class="section-kicker">
+                            👥 DATA SDM
+                        </span>
+
+                        <h2>
+                            Data Pegawai
+                        </h2>
+
+                        <p>
+                            Data nama dan bobot pegawai yang
+                            digunakan untuk perhitungan gaji.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="employee-summary-card">
+
+                    <div>
+
+                        <span>
+                            👥 Total Pegawai
+                        </span>
+
+                        <strong
+                            id="employeeCountDisplay"
+                        >
+                            20
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            ⭐ Total Bobot Poin
+                        </span>
+
+                        <strong
+                            id="employeeTotalPoints"
+                        >
+                            0
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="content-card table-card">
+
+                    <div class="table-card-header">
+
+                        <div>
+
+                            <h3>
+                                Daftar Pegawai
+                            </h3>
+
+                            <p>
+                                Nama pegawai mengikuti data
+                                pada sheet PEGAWAI.
+                            </p>
+
+                        </div>
+
+                        <span class="table-count-badge">
+                            PEGAWAI
+                        </span>
+
+                    </div>
+
+
+                    <div class="table-wrapper">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        No
+                                    </th>
+
+                                    <th>
+                                        Jabatan
+                                    </th>
+
+                                    <th>
+                                        Nama Pegawai
+                                    </th>
+
+                                    <th>
+                                        Bobot Poin
+                                    </th>
+
+                                    <th>
+                                        Status
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody
+                                id="employeeTableBody"
+                            >
+
+                                <tr>
+
+                                    <td
+                                        colspan="5"
+                                        class="loading-cell"
+                                    >
+                                        Memuat data pegawai...
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 RIWAYAT
+                 ================================================= -->
+
+            <section
+                id="historySection"
+                class="page-section"
+            >
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <span class="section-kicker">
+                            📜 CATATAN
+                        </span>
+
+                        <h2>
+                            Riwayat Transaksi
+                        </h2>
+
+                        <p>
+                            Rekap transaksi keuangan Pokja.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="content-card table-card">
+
+                    <div class="table-card-header">
+
+                        <div>
+
+                            <h3>
+                                Riwayat
+                            </h3>
+
+                            <p>
+                                Data mengikuti sheet RIWAYAT.
+                            </p>
+
+                        </div>
+
+                        <span class="table-count-badge">
+                            RIWAYAT
+                        </span>
+
+                    </div>
+
+
+                    <div class="table-wrapper">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Tanggal
+                                    </th>
+
+                                    <th>
+                                        Jenis
+                                    </th>
+
+                                    <th>
+                                        Nominal
+                                    </th>
+
+                                    <th>
+                                        Keterangan / Sumber
+                                    </th>
+
+                                    <th>
+                                        Alokasi
+                                    </th>
+
+                                    <th>
+                                        Saldo Kas
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody
+                                id="historyTableBody"
+                            >
+
+                                <tr>
+
+                                    <td
+                                        colspan="6"
+                                        class="loading-cell"
+                                    >
+                                        Memuat riwayat...
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 PETUNJUK
+                 ================================================= -->
+
+            <section
+                id="guideSection"
+                class="page-section"
+            >
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <span class="section-kicker">
+                            💡 INFORMASI
+                        </span>
+
+                        <h2>
+                            Petunjuk Penggunaan
+                        </h2>
+
+                        <p>
+                            Panduan singkat penggunaan aplikasi.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="guide-grid">
+
+
+                    <article class="guide-card">
+
+                        <div class="guide-number">
+                            01
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Pemasukan
+                            </h3>
+
+                            <p>
+                                Masukkan tanggal, nominal, dan
+                                pilih sumber pemasukan. Sistem
+                                akan menghitung pembagian 30%
+                                Kas Pokja dan 70% penggajian.
+                            </p>
+
+                        </div>
+
+                    </article>
+
+
+                    <article class="guide-card">
+
+                        <div class="guide-number">
+                            02
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Pengeluaran
+                            </h3>
+
+                            <p>
+                                Masukkan tanggal, nominal, dan
+                                deskripsi pengeluaran. Deskripsi
+                                dibatasi maksimal 300 kata.
+                            </p>
+
+                        </div>
+
+                    </article>
+
+
+                    <article class="guide-card">
+
+                        <div class="guide-number">
+                            03
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Penggajian
+                            </h3>
+
+                            <p>
+                                Sistem menggunakan total bobot
+                                poin pegawai untuk menentukan
+                                nilai 1 poin dan nominal gaji
+                                setiap pegawai.
+                            </p>
+
+                        </div>
+
+                    </article>
+
+
+                    <article class="guide-card">
+
+                        <div class="guide-number">
+                            04
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Bayar Gaji
+                            </h3>
+
+                            <p>
+                                Tekan tombol 💰 BAYAR GAJI
+                                pada pegawai yang akan dibayar.
+                                Sistem mencatat status dan
+                                tanggal pembayaran.
+                            </p>
+
+                        </div>
+
+                    </article>
+
+
+                    <article class="guide-card">
+
+                        <div class="guide-number">
+                            05
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Total Kas
+                            </h3>
+
+                            <p>
+                                Pantau sisa Kas Pokja, dana
+                                penggajian, gaji yang telah
+                                dibayarkan, dan dana yang masih
+                                tersedia.
+                            </p>
+
+                        </div>
+
+                    </article>
+
+
+                    <article class="guide-card">
+
+                        <div class="guide-number">
+                            06
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Database
+                            </h3>
+
+                            <p>
+                                Data aplikasi tersimpan pada
+                                Google Spreadsheet melalui
+                                Google Apps Script.
+                            </p>
+
+                        </div>
+
+                    </article>
+
+                </div>
+
+
+                <div class="guide-warning">
+
+                    <span>
+                        🔐
+                    </span>
+
+                    <div>
+
+                        <strong>
+                            Catatan keamanan
+                        </strong>
+
+                        <p>
+                            Jangan membagikan URL Web App atau
+                            mengubah nama sheet dan header database
+                            secara sembarangan karena aplikasi
+                            bergantung pada struktur tersebut.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
 
         </div>
+
+
+        <!-- =====================================================
+             FOOTER
+             ===================================================== -->
+
+        <footer class="app-footer">
+
+            <div>
+
+                <strong>
+                    🌱 Keuangan Pokja Adiwiyata
+                </strong>
+
+                <span>
+                    Sistem administrasi keuangan Pokja
+                </span>
+
+            </div>
+
+
+            <div class="footer-status">
+
+                <span
+                    class="connection-dot"
+                ></span>
+
+                <span>
+                    Asia/Jakarta
+                </span>
+
+            </div>
+
+        </footer>
 
     </main>
 
-</div>
+
+    <!-- =========================================================
+         CONFIRM PAYMENT MODAL
+         ========================================================= -->
+
+    <div
+        id="confirmModal"
+        class="modal"
+        aria-hidden="true"
+    >
+
+        <div
+            class="modal-backdrop"
+            data-modal-close
+        ></div>
 
 
-<!-- =============================================================
-     MOBILE OVERLAY
-     ============================================================= -->
-
-<div
-    id="sidebarOverlay"
-    class="sidebar-overlay"
-    aria-hidden="true"
-></div>
-
-
-<!-- =============================================================
-     PAYMENT MODAL
-     ============================================================= -->
-
-<div
-    id="paymentModal"
-    class="modal-overlay hidden"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="paymentModalTitle"
->
-
-    <div class="modal-card payment-modal-card">
-
-        <!-- Modal Header -->
-        <div class="modal-header">
-
-            <div class="modal-header-icon">
-                💰
-            </div>
+        <div
+            class="modal-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirmModalTitle"
+        >
 
             <button
                 type="button"
-                id="closePaymentModal"
                 class="modal-close"
+                id="confirmModalClose"
                 aria-label="Tutup"
             >
-                <i class="fa-solid fa-xmark"></i>
+                ×
             </button>
 
-        </div>
 
-
-        <!-- Modal Body -->
-        <div class="modal-body">
-
-            <span class="modal-kicker">
-                KONFIRMASI PEMBAYARAN
-            </span>
-
-            <h2 id="paymentModalTitle">
-                Bayar Gaji Pegawai
-            </h2>
-
-            <p class="modal-description">
-                Pastikan data pegawai dan nominal gaji sudah benar
-                sebelum melakukan pembayaran.
-            </p>
-
-
-            <!-- Employee information -->
-            <div class="payment-employee-card">
-
-                <div class="payment-avatar" id="paymentEmployeeAvatar">
-                    👤
-                </div>
-
-                <div class="payment-employee-info">
-
-                    <strong id="paymentEmployeeName">
-                        -
-                    </strong>
-
-                    <span id="paymentEmployeePosition">
-                        -
-                    </span>
-
-                </div>
-
+            <div class="modal-icon">
+                💰
             </div>
 
 
-            <!-- Payment detail -->
-            <div class="payment-detail-box">
+            <div class="modal-content">
 
-                <div class="detail-row">
-
-                    <span>
-                        <i class="fa-regular fa-calendar"></i>
-                        Bulan
-                    </span>
-
-                    <strong id="paymentMonth">
-                        -
-                    </strong>
-
-                </div>
-
-
-                <div class="detail-row">
-
-                    <span>
-                        <i class="fa-solid fa-star"></i>
-                        Poin
-                    </span>
-
-                    <strong id="paymentPoints">
-                        0
-                    </strong>
-
-                </div>
-
-
-                <div class="detail-row total-row">
-
-                    <span>
-                        Total Gaji
-                    </span>
-
-                    <strong id="paymentSalary">
-                        Rp0
-                    </strong>
-
-                </div>
-
-            </div>
-
-
-            <!-- Payment note -->
-            <div class="form-group">
-
-                <label for="paymentNote">
-
-                    <i class="fa-regular fa-note-sticky"></i>
-
-                    Keterangan
-                    <span class="optional">
-                        (opsional)
-                    </span>
-
-                </label>
-
-                <textarea
-                    id="paymentNote"
-                    rows="3"
-                    maxlength="500"
-                    placeholder="Contoh: Gaji bulan September 2026 telah diterima..."
-                ></textarea>
-
-                <div class="character-counter">
-                    <span id="paymentNoteCounter">
-                        0
-                    </span>
-                    / 500
-                </div>
-
-            </div>
-
-
-            <!-- Warning -->
-            <div class="payment-warning">
-
-                <span class="warning-icon">
-                    ⚠️
+                <span class="modal-kicker">
+                    KONFIRMASI
                 </span>
 
-                <p>
-                    Setelah pembayaran dikonfirmasi,
-                    status pada spreadsheet akan berubah menjadi
-                    <strong>SUDAH DIBAYAR</strong>.
+                <h2
+                    id="confirmModalTitle"
+                >
+                    Konfirmasi Pembayaran
+                </h2>
+
+                <p
+                    id="confirmModalMessage"
+                >
+                    Apakah Anda yakin ingin melakukan
+                    pembayaran?
                 </p>
 
             </div>
 
-        </div>
 
+            <div class="modal-payment-detail">
 
-        <!-- Modal Footer -->
-        <div class="modal-footer">
+                <div>
 
-            <button
-                type="button"
-                id="cancelPaymentModal"
-                class="modal-button secondary"
-            >
-                <i class="fa-solid fa-xmark"></i>
-                Batal
-            </button>
+                    <span>
+                        Pegawai
+                    </span>
 
-
-            <button
-                type="button"
-                id="confirmPayment"
-                class="modal-button primary"
-            >
-                <span class="button-normal-content">
-
-                    <i class="fa-solid fa-check"></i>
-
-                    Konfirmasi Bayar
-
-                </span>
-
-                <span class="button-loading-content hidden">
-
-                    <span class="button-spinner"></span>
-
-                    Memproses...
-
-                </span>
-
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- =============================================================
-     GENERIC CONFIRMATION MODAL
-     ============================================================= -->
-
-<div
-    id="confirmModal"
-    class="modal-overlay hidden"
-    role="dialog"
-    aria-modal="true"
->
-
-    <div class="modal-card small-modal">
-
-        <div class="modal-body text-center">
-
-            <div
-                id="confirmModalIcon"
-                class="large-modal-icon"
-            >
-                ⚠️
-            </div>
-
-            <h2 id="confirmModalTitle">
-                Konfirmasi
-            </h2>
-
-            <p id="confirmModalMessage">
-                Apakah Anda yakin?
-            </p>
-
-        </div>
-
-        <div class="modal-footer">
-
-            <button
-                type="button"
-                id="cancelConfirm"
-                class="modal-button secondary"
-            >
-                Batal
-            </button>
-
-            <button
-                type="button"
-                id="confirmAction"
-                class="modal-button primary"
-            >
-                Ya, Lanjutkan
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- =============================================================
-     TOAST NOTIFICATION
-     ============================================================= -->
-
-<div
-    id="toastContainer"
-    class="toast-container"
-    aria-live="polite"
-    aria-atomic="true"
-></div>
-
-
-<!-- =============================================================
-     GLOBAL LOADING
-     ============================================================= -->
-
-<div
-    id="globalLoading"
-    class="global-loading hidden"
->
-
-    <div class="global-loading-card">
-
-        <div class="loading-animation">
-            <span>💰</span>
-        </div>
-
-        <strong id="globalLoadingText">
-            Memproses...
-        </strong>
-
-        <span>
-            Mohon tunggu sebentar.
-        </span>
-
-    </div>
-
-</div>
-
-
-<!-- =============================================================
-     OFFLINE / ERROR SCREEN
-     ============================================================= -->
-
-<div
-    id="errorScreen"
-    class="error-screen hidden"
->
-
-    <div class="error-card">
-
-        <div class="error-icon">
-            😵
-        </div>
-
-        <h2>
-            Ups! Ada Masalah
-        </h2>
-
-        <p id="errorMessage">
-            Tidak dapat terhubung ke server.
-        </p>
-
-        <button
-            type="button"
-            id="retryConnection"
-            class="primary-button"
-        >
-            <i class="fa-solid fa-rotate"></i>
-            Coba Lagi
-        </button>
-
-    </div>
-
-</div>
-
-
-<!-- =============================================================
-     TEMPLATE: PAYROLL CARD
-     =============================================================
-
-     Template ini sengaja disediakan untuk kompatibilitas
-     dengan render payroll yang dilakukan oleh script.js.
-     -->
-
-<template id="payrollCardTemplate">
-
-    <article class="payroll-card">
-
-        <div class="payroll-card-top">
-
-            <div class="employee-mini">
-
-                <div class="employee-avatar">
-                    👤
-                </div>
-
-                <div class="employee-mini-info">
-
-                    <strong class="employee-name">
+                    <strong
+                        id="confirmEmployeeName"
+                    >
                         -
                     </strong>
 
-                    <span class="employee-position">
-                        -
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Nominal
                     </span>
+
+                    <strong
+                        id="confirmSalaryAmount"
+                    >
+                        Rp 0
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Bulan
+                    </span>
+
+                    <strong
+                        id="confirmSalaryMonth"
+                    >
+                        -
+                    </strong>
 
                 </div>
 
             </div>
 
 
-            <span class="payment-status-badge">
-                BELUM DIBAYAR
-            </span>
+            <div class="modal-actions">
 
-        </div>
+                <button
+                    type="button"
+                    id="confirmModalCancel"
+                    class="btn-secondary"
+                >
+                    Batal
+                </button>
 
-
-        <div class="payroll-card-middle">
-
-            <div class="payroll-detail">
-
-                <small>
-                    POIN
-                </small>
-
-                <strong class="employee-points">
-                    0
-                </strong>
-
-            </div>
-
-
-            <div class="payroll-detail">
-
-                <small>
-                    NILAI / POIN
-                </small>
-
-                <strong class="point-value">
-                    Rp0
-                </strong>
-
-            </div>
-
-
-            <div class="payroll-detail salary-detail">
-
-                <small>
-                    GAJI
-                </small>
-
-                <strong class="salary-value">
-                    Rp0
-                </strong>
+                <button
+                    type="button"
+                    id="confirmModalConfirm"
+                    class="btn-pay-salary modal-pay-button"
+                >
+                    💰 BAYAR GAJI
+                </button>
 
             </div>
 
         </div>
 
+    </div>
 
-        <div class="payroll-card-bottom">
 
-            <div class="payment-date">
+    <!-- =========================================================
+         JAVASCRIPT
+         ========================================================= -->
 
-                <i class="fa-regular fa-clock"></i>
+    <script
+        src="script.js"
+        defer
+    ></script>
 
-                <span class="payment-date-text">
-                    Belum dibayar
-                </span>
 
-            </div>
+    <!-- =========================================================
+         SMALL UI BRIDGE
+         Untuk elemen yang belum menjadi tanggung jawab utama
+         script.js.
+         ========================================================= -->
 
-
-            <button
-                type="button"
-                class="pay-button"
-                data-action="pay-salary"
-                data-row=""
-            >
-                <i class="fa-solid fa-money-bill-wave"></i>
-                💰 BAYAR GAJI
-            </button>
-
-        </div>
-
-    </article>
-
-</template>
-
-
-<!-- =============================================================
-     TEMPLATE: EMPLOYEE CARD
-     ============================================================= -->
-
-<template id="employeeCardTemplate">
-
-    <article class="employee-card">
-
-        <div class="employee-card-header">
-
-            <div class="employee-avatar large">
-                👤
-            </div>
-
-            <span class="employee-id">
-                ID -
-            </span>
-
-        </div>
-
-
-        <div class="employee-card-body">
-
-            <h3 class="employee-card-name">
-                -
-            </h3>
-
-            <p class="employee-card-position">
-                -
-            </p>
-
-        </div>
-
-
-        <div class="employee-card-footer">
-
-            <div>
-
-                <small>
-                    POIN
-                </small>
-
-                <strong class="employee-card-points">
-                    0
-                </strong>
-
-            </div>
-
-            <div class="employee-card-arrow">
-                <i class="fa-solid fa-arrow-right"></i>
-            </div>
-
-        </div>
-
-    </article>
-
-</template>
-
-
-<!-- =============================================================
-     JAVASCRIPT
-     ============================================================= -->
-
-<script src="script.js"></script>
-
-
-<!-- =============================================================
-     SMALL FALLBACK HELPER
-     Tidak mengambil alih fungsi script.js.
-     Hanya memastikan menu mobile dan modal dasar tetap dapat
-     ditutup jika diperlukan.
-     ============================================================= -->
-
-<script>
-(function () {
-
-    'use strict';
-
-    document.addEventListener('DOMContentLoaded', function () {
-
-        /* =====================================================
-           MOBILE SIDEBAR
-           ===================================================== */
-
-        const menuToggle =
-            document.getElementById('menuToggle');
-
-        const sidebar =
-            document.getElementById('sidebar');
-
-        const sidebarOverlay =
-            document.getElementById('sidebarOverlay');
-
-
-        function toggleSidebar() {
-
-            if (!sidebar) return;
-
-            sidebar.classList.toggle('open');
-
-            if (sidebarOverlay) {
-                sidebarOverlay.classList.toggle('show');
-            }
-
-        }
-
-
-        function closeSidebar() {
-
-            if (!sidebar) return;
-
-            sidebar.classList.remove('open');
-
-            if (sidebarOverlay) {
-                sidebarOverlay.classList.remove('show');
-            }
-
-        }
-
-
-        if (menuToggle) {
-
-            menuToggle.addEventListener(
-                'click',
-                toggleSidebar
-            );
-
-        }
-
-
-        if (sidebarOverlay) {
-
-            sidebarOverlay.addEventListener(
-                'click',
-                closeSidebar
-            );
-
-        }
-
-
-        /* =====================================================
-           CLOSE SIDEBAR AFTER NAVIGATION
-           ===================================================== */
+    <script>
 
         document.addEventListener(
-            'click',
-            function (event) {
+            'DOMContentLoaded',
+            function () {
 
-                const navigation =
-                    event.target.closest(
-                        '[data-section]'
+                /*
+                 * -------------------------------------------------
+                 * SIDEBAR
+                 * -------------------------------------------------
+                 */
+
+                const sidebar =
+                    document.getElementById(
+                        'sidebar'
                     );
 
-                if (navigation) {
-                    closeSidebar();
+                const overlay =
+                    document.getElementById(
+                        'sidebarOverlay'
+                    );
+
+                const menuToggle =
+                    document.getElementById(
+                        'menuToggle'
+                    );
+
+                const closeSidebar =
+                    document.getElementById(
+                        'closeSidebar'
+                    );
+
+
+                function openSidebar() {
+
+                    if (sidebar) {
+                        sidebar.classList.add(
+                            'open'
+                        );
+                    }
+
+                    if (overlay) {
+                        overlay.classList.add(
+                            'show'
+                        );
+                    }
+
+                    document.body.classList.add(
+                        'sidebar-open'
+                    );
                 }
 
-            }
-        );
+
+                function closeSidebarMenu() {
+
+                    if (sidebar) {
+                        sidebar.classList.remove(
+                            'open'
+                        );
+                    }
+
+                    if (overlay) {
+                        overlay.classList.remove(
+                            'show'
+                        );
+                    }
+
+                    document.body.classList.remove(
+                        'sidebar-open'
+                    );
+                }
 
 
-        /* =====================================================
-           PAYMENT MODAL CLOSE
-           ===================================================== */
+                if (menuToggle) {
 
-        const paymentModal =
-            document.getElementById('paymentModal');
+                    menuToggle.addEventListener(
+                        'click',
+                        openSidebar
+                    );
 
-        const closePaymentModal =
-            document.getElementById(
-                'closePaymentModal'
-            );
-
-        const cancelPaymentModal =
-            document.getElementById(
-                'cancelPaymentModal'
-            );
+                }
 
 
-        function closePaymentWindow() {
+                if (closeSidebar) {
 
-            if (!paymentModal) return;
+                    closeSidebar.addEventListener(
+                        'click',
+                        closeSidebarMenu
+                    );
 
-            paymentModal.classList.add('hidden');
-
-        }
-
-
-        if (closePaymentModal) {
-
-            closePaymentModal.addEventListener(
-                'click',
-                closePaymentWindow
-            );
-
-        }
+                }
 
 
-        if (cancelPaymentModal) {
+                if (overlay) {
 
-            cancelPaymentModal.addEventListener(
-                'click',
-                closePaymentWindow
-            );
+                    overlay.addEventListener(
+                        'click',
+                        closeSidebarMenu
+                    );
 
-        }
+                }
 
 
-        if (paymentModal) {
+                /*
+                 * Tutup sidebar setelah memilih menu
+                 * pada layar mobile.
+                 */
+                document.querySelectorAll(
+                    '.nav-item'
+                ).forEach(
+                    function (item) {
 
-            paymentModal.addEventListener(
-                'click',
-                function (event) {
+                        item.addEventListener(
+                            'click',
+                            function () {
 
-                    if (
-                        event.target === paymentModal
-                    ) {
-                        closePaymentWindow();
+                                document
+                                    .querySelectorAll(
+                                        '.nav-item'
+                                    )
+                                    .forEach(
+                                        function (nav) {
+
+                                            nav.classList.remove(
+                                                'active'
+                                            );
+
+                                        }
+                                    );
+
+                                item.classList.add(
+                                    'active'
+                                );
+
+                                closeSidebarMenu();
+
+                            }
+                        );
+
+                    }
+                );
+
+
+                /*
+                 * -------------------------------------------------
+                 * CURRENT DATE DISPLAY
+                 * -------------------------------------------------
+                 */
+
+                function updateDateDisplay() {
+
+                    const now =
+                        new Date();
+
+                    const dateText =
+                        now.toLocaleDateString(
+                            'id-ID',
+                            {
+                                weekday:
+                                    'long',
+
+                                day:
+                                    'numeric',
+
+                                month:
+                                    'long',
+
+                                year:
+                                    'numeric'
+                            }
+                        );
+
+
+                    const currentDate =
+                        document.getElementById(
+                            'currentDateDisplay'
+                        );
+
+                    const heroDate =
+                        document.getElementById(
+                            'heroDate'
+                        );
+
+
+                    if (currentDate) {
+                        currentDate.textContent =
+                            dateText;
+                    }
+
+
+                    if (heroDate) {
+                        heroDate.textContent =
+                            dateText;
                     }
 
                 }
-            );
-
-        }
 
 
-        /* =====================================================
-           ESCAPE KEY
-           ===================================================== */
+                updateDateDisplay();
 
-        document.addEventListener(
-            'keydown',
-            function (event) {
 
-                if (event.key !== 'Escape') {
-                    return;
-                }
+                /*
+                 * -------------------------------------------------
+                 * APP LOADER
+                 * -------------------------------------------------
+                 */
 
-                closeSidebar();
+                window.addEventListener(
+                    'load',
+                    function () {
 
-                if (paymentModal) {
-                    paymentModal.classList.add(
-                        'hidden'
+                        const loader =
+                            document.getElementById(
+                                'appLoader'
+                            );
+
+                        if (!loader) {
+                            return;
+                        }
+
+                        setTimeout(
+                            function () {
+
+                                loader.classList.add(
+                                    'hidden'
+                                );
+
+                            },
+                            500
+                        );
+
+                    }
+                );
+
+
+                /*
+                 * -------------------------------------------------
+                 * INCOME PREVIEW
+                 * -------------------------------------------------
+                 */
+
+                const incomeAmount =
+                    document.getElementById(
+                        'incomeAmount'
                     );
+
+                const incomeKasPreview =
+                    document.getElementById(
+                        'incomeKasPreview'
+                    );
+
+                const incomeSalaryPreview =
+                    document.getElementById(
+                        'incomeSalaryPreview'
+                    );
+
+
+                function updateIncomePreview() {
+
+                    const amount =
+                        Number(
+                            incomeAmount?.value ||
+                            0
+                        );
+
+
+                    const kas =
+                        amount * 0.30;
+
+                    const salary =
+                        amount * 0.70;
+
+
+                    const format =
+                        function (value) {
+
+                            return 'Rp ' +
+                                value.toLocaleString(
+                                    'id-ID',
+                                    {
+                                        maximumFractionDigits:
+                                            0
+                                    }
+                                );
+
+                        };
+
+
+                    if (incomeKasPreview) {
+
+                        incomeKasPreview.textContent =
+                            format(kas);
+
+                    }
+
+
+                    if (incomeSalaryPreview) {
+
+                        incomeSalaryPreview.textContent =
+                            format(salary);
+
+                    }
+
                 }
 
-                const confirmModal =
+
+                if (incomeAmount) {
+
+                    incomeAmount.addEventListener(
+                        'input',
+                        updateIncomePreview
+                    );
+
+                }
+
+
+                updateIncomePreview();
+
+
+                /*
+                 * -------------------------------------------------
+                 * CUSTOM PAYMENT MODAL
+                 * -------------------------------------------------
+                 */
+
+                const modal =
                     document.getElementById(
                         'confirmModal'
                     );
 
-                if (confirmModal) {
-                    confirmModal.classList.add(
-                        'hidden'
+                const modalMessage =
+                    document.getElementById(
+                        'confirmModalMessage'
                     );
+
+                const employeeName =
+                    document.getElementById(
+                        'confirmEmployeeName'
+                    );
+
+                const salaryAmount =
+                    document.getElementById(
+                        'confirmSalaryAmount'
+                    );
+
+                const salaryMonth =
+                    document.getElementById(
+                        'confirmSalaryMonth'
+                    );
+
+                const confirmButton =
+                    document.getElementById(
+                        'confirmModalConfirm'
+                    );
+
+                const cancelButton =
+                    document.getElementById(
+                        'confirmModalCancel'
+                    );
+
+                const closeButton =
+                    document.getElementById(
+                        'confirmModalClose'
+                    );
+
+
+                let modalResolve =
+                    null;
+
+
+                function closePaymentModal(
+                    result
+                ) {
+
+                    if (modal) {
+
+                        modal.classList.remove(
+                            'show'
+                        );
+
+                        modal.setAttribute(
+                            'aria-hidden',
+                            'true'
+                        );
+
+                    }
+
+
+                    if (
+                        typeof modalResolve ===
+                        'function'
+                    ) {
+
+                        const resolve =
+                            modalResolve;
+
+                        modalResolve =
+                            null;
+
+                        resolve(
+                            result
+                        );
+
+                    }
+
                 }
+
+
+                window.openConfirmModal =
+                    function (options) {
+
+                        options =
+                            options || {};
+
+
+                        if (!modal) {
+
+                            return Promise.resolve(
+                                window.confirm(
+                                    options.message ||
+                                    'Konfirmasi pembayaran?'
+                                )
+                            );
+
+                        }
+
+
+                        if (modalMessage) {
+
+                            modalMessage.textContent =
+                                options.message ||
+                                'Apakah Anda yakin ingin melakukan pembayaran?';
+
+                        }
+
+
+                        if (employeeName) {
+
+                            employeeName.textContent =
+                                options.employeeName ||
+                                'Pegawai';
+
+                        }
+
+
+                        if (salaryAmount) {
+
+                            salaryAmount.textContent =
+                                options.amount ||
+                                'Rp 0';
+
+                        }
+
+
+                        if (salaryMonth) {
+
+                            salaryMonth.textContent =
+                                options.month ||
+                                '-';
+
+                        }
+
+
+                        if (confirmButton) {
+
+                            confirmButton.textContent =
+                                options.confirmText ||
+                                '💰 BAYAR GAJI';
+
+                        }
+
+
+                        if (cancelButton) {
+
+                            cancelButton.textContent =
+                                options.cancelText ||
+                                'Batal';
+
+                        }
+
+
+                        modal.classList.add(
+                            'show'
+                        );
+
+                        modal.setAttribute(
+                            'aria-hidden',
+                            'false'
+                        );
+
+
+                        return new Promise(
+                            function (resolve) {
+
+                                modalResolve =
+                                    resolve;
+
+                            }
+                        );
+
+                    };
+
+
+                if (confirmButton) {
+
+                    confirmButton.addEventListener(
+                        'click',
+                        function () {
+
+                            closePaymentModal(
+                                true
+                            );
+
+                        }
+                    );
+
+                }
+
+
+                if (cancelButton) {
+
+                    cancelButton.addEventListener(
+                        'click',
+                        function () {
+
+                            closePaymentModal(
+                                false
+                            );
+
+                        }
+                    );
+
+                }
+
+
+                if (closeButton) {
+
+                    closeButton.addEventListener(
+                        'click',
+                        function () {
+
+                            closePaymentModal(
+                                false
+                            );
+
+                        }
+                    );
+
+                }
+
+
+                if (modal) {
+
+                    modal
+                        .querySelectorAll(
+                            '[data-modal-close]'
+                        )
+                        .forEach(
+                            function (element) {
+
+                                element.addEventListener(
+                                    'click',
+                                    function () {
+
+                                        closePaymentModal(
+                                            false
+                                        );
+
+                                    }
+                                );
+
+                            }
+                        );
+
+                }
+
+
+                document.addEventListener(
+                    'keydown',
+                    function (event) {
+
+                        if (
+                            event.key ===
+                            'Escape'
+                        ) {
+
+                            if (
+                                modal &&
+                                modal.classList.contains(
+                                    'show'
+                                )
+                            ) {
+
+                                closePaymentModal(
+                                    false
+                                );
+
+                            }
+
+                        }
+
+                    }
+                );
+
+
+                /*
+                 * -------------------------------------------------
+                 * KAS DETAIL
+                 *
+                 * Nilai ini mengambil state dashboard
+                 * setelah script.js selesai memuat data.
+                 * -------------------------------------------------
+                 */
+
+                function updateCashDetails() {
+
+                    const dashboard =
+                        window.KeuanganPokja &&
+                        window.KeuanganPokja.state
+                            ? window.KeuanganPokja.state.dashboard
+                            : null;
+
+
+                    if (!dashboard) {
+                        return;
+                    }
+
+
+                    const values = {
+
+                        cashTotalIncome:
+                            dashboard.totalIncome,
+
+                        cashAllocationDetail:
+                            dashboard.kasAllocation,
+
+                        cashTotalExpense:
+                            dashboard.totalExpense,
+
+                        cashSalaryFund:
+                            dashboard.salaryFund,
+
+                        cashSalaryPaid:
+                            dashboard.totalSalaryPaid,
+
+                        cashSalaryRemaining:
+                            dashboard.remainingSalaryFund,
+
+                        sisaKasPokja:
+                            dashboard.remainingCash
+
+                    };
+
+
+                    Object.keys(values)
+                        .forEach(
+                            function (id) {
+
+                                const element =
+                                    document.getElementById(
+                                        id
+                                    );
+
+                                if (!element) {
+                                    return;
+                                }
+
+
+                                const value =
+                                    Number(
+                                        values[id] ||
+                                        0
+                                    );
+
+
+                                element.textContent =
+                                    'Rp ' +
+                                    value.toLocaleString(
+                                        'id-ID',
+                                        {
+                                            maximumFractionDigits:
+                                                0
+                                        }
+                                    );
+
+                            }
+                        );
+
+
+                    /*
+                     * Jumlah pegawai.
+                     */
+                    const employeeCount =
+                        document.getElementById(
+                            'employeeCountDisplay'
+                        );
+
+                    if (
+                        employeeCount &&
+                        dashboard.totalEmployees
+                    ) {
+
+                        employeeCount.textContent =
+                            dashboard.totalEmployees;
+
+                    }
+
+                }
+
+
+                /*
+                 * Coba sinkronisasi setelah aplikasi selesai
+                 * memuat data.
+                 */
+                setTimeout(
+                    updateCashDetails,
+                    1000
+                );
+
+
+                /*
+                 * Sinkronisasi berkala dengan state frontend.
+                 */
+                setInterval(
+                    updateCashDetails,
+                    3000
+                );
 
             }
         );
 
-
-        /* =====================================================
-           PAYMENT NOTE COUNTER
-           ===================================================== */
-
-        const paymentNote =
-            document.getElementById(
-                'paymentNote'
-            );
-
-        const paymentNoteCounter =
-            document.getElementById(
-                'paymentNoteCounter'
-            );
-
-
-        if (
-            paymentNote &&
-            paymentNoteCounter
-        ) {
-
-            function updateNoteCounter() {
-
-                paymentNoteCounter.textContent =
-                    paymentNote.value.length;
-
-            }
-
-
-            paymentNote.addEventListener(
-                'input',
-                updateNoteCounter
-            );
-
-
-            updateNoteCounter();
-
-        }
-
-
-        /* =====================================================
-           SEARCH CLEAR BUTTONS
-           ===================================================== */
-
-        const clearEmployeeSearch =
-            document.getElementById(
-                'clearEmployeeSearch'
-            );
-
-        const employeeSearch =
-            document.getElementById(
-                'searchEmployee'
-            );
-
-
-        if (
-            clearEmployeeSearch &&
-            employeeSearch
-        ) {
-
-            clearEmployeeSearch.addEventListener(
-                'click',
-                function () {
-
-                    employeeSearch.value = '';
-
-                    employeeSearch.dispatchEvent(
-                        new Event('input', {
-                            bubbles: true
-                        })
-                    );
-
-                    employeeSearch.focus();
-
-                }
-            );
-
-        }
-
-
-        const clearPayrollSearch =
-            document.getElementById(
-                'clearPayrollSearch'
-            );
-
-        const payrollSearch =
-            document.getElementById(
-                'payrollSearch'
-            );
-
-
-        if (
-            clearPayrollSearch &&
-            payrollSearch
-        ) {
-
-            clearPayrollSearch.addEventListener(
-                'click',
-                function () {
-
-                    payrollSearch.value = '';
-
-                    payrollSearch.dispatchEvent(
-                        new Event('input', {
-                            bubbles: true
-                        })
-                    );
-
-                    payrollSearch.focus();
-
-                }
-            );
-
-        }
-
-
-        /* =====================================================
-           CURRENT DATE
-           ===================================================== */
-
-        const currentDate =
-            document.getElementById(
-                'currentDate'
-            );
-
-
-        if (currentDate) {
-
-            try {
-
-                const now = new Date();
-
-                const dateText =
-                    new Intl.DateTimeFormat(
-                        'id-ID',
-                        {
-                            timeZone: 'Asia/Jakarta',
-                            weekday: 'long',
-                            day: '2-digit',
-                            month: 'long',
-                            year: 'numeric'
-                        }
-                    ).format(now);
-
-
-                currentDate.innerHTML =
-                    '<i class="fa-regular fa-calendar"></i>' +
-                    '<span>' +
-                    dateText +
-                    '</span>';
-
-            } catch (error) {
-
-                currentDate.textContent =
-                    'Asia/Jakarta';
-
-            }
-
-        }
-
-
-        /* =====================================================
-           RESET PAYROLL FILTER
-           ===================================================== */
-
-        const resetPayrollFilter =
-            document.getElementById(
-                'resetPayrollFilter'
-            );
-
-
-        if (resetPayrollFilter) {
-
-            resetPayrollFilter.addEventListener(
-                'click',
-                function () {
-
-                    const search =
-                        document.getElementById(
-                            'payrollSearch'
-                        );
-
-                    const status =
-                        document.getElementById(
-                            'paymentFilter'
-                        );
-
-
-                    if (search) {
-                        search.value = '';
-                        search.dispatchEvent(
-                            new Event(
-                                'input',
-                                {
-                                    bubbles: true
-                                }
-                            )
-                        );
-                    }
-
-
-                    if (status) {
-                        status.value = 'all';
-                        status.dispatchEvent(
-                            new Event(
-                                'change',
-                                {
-                                    bubbles: true
-                                }
-                            )
-                        );
-                    }
-
-                }
-            );
-
-        }
-
-    });
-
-})();
-</script>
+    </script>
 
 </body>
+
 </html>
+```
