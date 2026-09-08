@@ -53,7 +53,7 @@ const CONFIG = Object.freeze({
    * https://script.google.com/macros/s/AKfycbxxxxxxxx/exec
    */
   API_URL:
-    'https://script.google.com/macros/s/AKfycby8HssHrbPp7Njhy9TpP9kC3fOSx1MTNmontcdN3H_v57txKJNc5llC1nrvXr0WPqtt/exec',
+    'https://script.google.com/macros/s/AKfycbwXagyB_mIOCSLsGhISGr8mNYJ3g0-44NWWWxBeOSTYWefgJ5sDhP7dxh2WOApACez5/exec',
 
   TIMEZONE:
     'Asia/Jakarta',
