@@ -1,2177 +1,3624 @@
-/* =========================================================
-   KEUANGAN POKJA ADIWIYATA
-   SCRIPT.JS - FIXED STABLE VERSION
-   ========================================================= */
+/* ================================================================
+   KEUANGAN POKJA PENGELOLAAN SAMPAH ADIWIYATA
+   SCRIPT.JS
+   ================================================================
+   
+   FRONTEND :
+   GitHub Pages
+
+   BACKEND :
+   Google Apps Script Web App
+
+   DATABASE :
+   Google Spreadsheet
+
+   TIMEZONE :
+   Asia/Jakarta
+
+   ================================================================ */
 
 
-/* =========================================================
-   KONFIGURASI API
-   ========================================================= */
+/* ================================================================
+   KONFIGURASI
+   ================================================================ */
 
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbxNGzXKtr5Z2vro_kWdKi92pD9D-zR2v7f3uJsqoYZzT2lEQ68yMNKRAu2tqLScawC_Fg/exec";
+const CONFIG = {
 
+    /*
+     * GANTI DENGAN URL WEB APP GOOGLE APPS SCRIPT
+     *
+     * Contoh:
+     * https://script.google.com/macros/s/XXXXXXXXXXXX/exec
+     */
+    API_URL:
+        'GANTI_DENGAN_URL_WEB_APP_APPS_SCRIPT',
 
-/* =========================================================
-   STATE APLIKASI
-   ========================================================= */
+    TIMEZONE:
+        'Asia/Jakarta',
 
-const APP_STATE = {
-  dashboard: null,
-  settings: null,
-  employees: [],
-  connected: false
+    REFRESH_INTERVAL:
+        30000,
+
+    SOURCES: [
+        'Penjualan Sampah Botol/Plastik',
+        'Penjualan Pupuk Cair/Kompos',
+        'Bantuan Pemerintah',
+        'Bantuan Sekolah',
+        'Sponsor'
+    ]
+
 };
 
 
-/* =========================================================
-   FORMAT RUPIAH
-   ========================================================= */
+/* ================================================================
+   STATE APLIKASI
+   ================================================================ */
 
-function formatRupiah(value) {
-  var number = Number(value || 0);
+const APP = {
 
-  if (!isFinite(number)) {
-    number = 0;
-  }
+    dashboard: null,
 
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(number);
+    income: [],
+
+    expenses: [],
+
+    employees: [],
+
+    payroll: [],
+
+    history: [],
+
+    currentPayrollMonth: '',
+
+    loading: false,
+
+    initialized: false,
+
+    refreshTimer: null
+
+};
+
+
+/* ================================================================
+   DOM HELPER
+   ================================================================ */
+
+function $(selector) {
+
+    return document.querySelector(selector);
+
 }
 
 
-/* =========================================================
-   FORMAT ANGKA
-   ========================================================= */
+function $$(selector) {
 
-function formatNumber(value) {
-  var number = Number(value || 0);
+    return Array.from(
+        document.querySelectorAll(selector)
+    );
 
-  if (!isFinite(number)) {
-    number = 0;
-  }
-
-  return new Intl.NumberFormat("id-ID").format(number);
 }
 
 
-/* =========================================================
-   AMBIL ANGKA VALID PERTAMA
-   ========================================================= */
+/* ================================================================
+   INITIALIZATION
+   ================================================================ */
 
-function firstNumber() {
-  var values = Array.prototype.slice.call(arguments);
+document.addEventListener(
+    'DOMContentLoaded',
+    function () {
 
-  for (var i = 0; i < values.length; i++) {
-    if (
-      values[i] !== undefined &&
-      values[i] !== null &&
-      values[i] !== "" &&
-      isFinite(Number(values[i]))
-    ) {
-      return Number(values[i]);
+        initializeApp();
+
     }
-  }
-
-  return 0;
-}
-
-
-/* =========================================================
-   SET TEXT
-   ========================================================= */
-
-function setText(id, value) {
-  var element = document.getElementById(id);
-
-  if (element) {
-    element.textContent = value;
-  }
-}
-
-
-/* =========================================================
-   ESCAPE HTML
-   ========================================================= */
-
-function escapeHtml(value) {
-  return String(value == null ? "" : value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-
-/* =========================================================
-   API GET
-   ========================================================= */
-
-async function apiGet(action, extraParams) {
-  var url = API_URL +
-    "?action=" +
-    encodeURIComponent(action) +
-    "&_=" +
-    Date.now();
-
-  if (extraParams) {
-    Object.keys(extraParams).forEach(function(key) {
-      var value = extraParams[key];
-
-      if (
-        value !== undefined &&
-        value !== null &&
-        value !== ""
-      ) {
-        url +=
-          "&" +
-          encodeURIComponent(key) +
-          "=" +
-          encodeURIComponent(value);
-      }
-    });
-  }
-
-  var response;
-
-  try {
-    response = await fetch(url, {
-      method: "GET",
-      cache: "no-store",
-      redirect: "follow"
-    });
-  } catch (networkError) {
-    throw new Error(
-      "Tidak dapat terhubung ke server Google Apps Script."
-    );
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      "Server API tidak dapat diakses. HTTP " +
-      response.status
-    );
-  }
-
-  var result;
-
-  try {
-    result = await response.json();
-  } catch (jsonError) {
-    throw new Error(
-      "Server mengembalikan data yang tidak valid."
-    );
-  }
-
-  if (!result || result.success !== true) {
-    throw new Error(
-      (result && result.message) ||
-      "API mengembalikan status gagal."
-    );
-  }
-
-  return result;
-}
-
-
-/* =========================================================
-   API POST
-   ========================================================= */
-
-async function apiPost(payload) {
-  var response;
+);
 
-  try {
-    response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8"
-      },
-      body: JSON.stringify(payload)
-    });
-  } catch (networkError) {
-    throw new Error(
-      "Tidak dapat terhubung ke server Google Apps Script."
-    );
-  }
 
-  if (!response.ok) {
-    throw new Error(
-      "Server API tidak dapat diakses. HTTP " +
-      response.status
-    );
-  }
+/* ================================================================
+   INITIALIZE APP
+   ================================================================ */
 
-  var result;
-
-  try {
-    result = await response.json();
-  } catch (jsonError) {
-    throw new Error(
-      "Server mengembalikan data yang tidak valid."
-    );
-  }
-
-  if (!result || result.success !== true) {
-    throw new Error(
-      (result && result.message) ||
-      "Transaksi gagal diproses."
-    );
-  }
+async function initializeApp() {
 
-  return result;
-}
+    try {
 
+        APP.initialized = false;
 
-/* =========================================================
-   STATUS KONEKSI
-   ========================================================= */
+        setupStaticUI();
 
-function setConnectionStatus(connected, message) {
-  var element =
-    document.getElementById("connectionStatus");
+        populateSourceDropdown();
 
-  APP_STATE.connected = connected;
-
-  if (!element) {
-    return;
-  }
-
-  element.textContent =
-    message ||
-    (connected ? "Terhubung" : "Tidak terhubung");
-
-  element.classList.remove(
-    "connected",
-    "error"
-  );
+        setupForms();
 
-  if (connected) {
-    element.classList.add("connected");
-  } else {
-    element.classList.add("error");
-  }
-}
+        showLoading(true);
 
+        await loadAllData();
 
-/* =========================================================
-   TOAST
-   ========================================================= */
+        APP.initialized = true;
 
-var toastTimer = null;
+        updateClock();
 
-function showToast(message, duration) {
-  var toast =
-    document.getElementById("toast");
+        /*
+         * Jam berjalan.
+         */
 
-  if (!toast) {
-    return;
-  }
+        setInterval(
+            updateClock,
+            1000
+        );
 
-  toast.textContent = message;
+        /*
+         * Refresh otomatis.
+         */
 
-  toast.classList.add("show");
+        startAutoRefresh();
 
-  clearTimeout(toastTimer);
+    } catch (error) {
 
-  toastTimer = setTimeout(function() {
-    toast.classList.remove("show");
-  }, duration || 3000);
-}
+        console.error(
+            'Initialization error:',
+            error
+        );
 
+        showToast(
+            error.message ||
+            'Gagal memuat aplikasi.',
+            'error'
+        );
 
-/* =========================================================
-   NAVIGASI HALAMAN
-   ========================================================= */
+    } finally {
 
-function showPage(pageName) {
-  console.log("Membuka halaman:", pageName);
+        showLoading(false);
 
-  var pages =
-    document.querySelectorAll(".page");
-
-  pages.forEach(function(page) {
-    page.classList.remove("active");
-  });
-
-  var target =
-    document.getElementById(
-      "page-" + pageName
-    );
-
-  if (!target) {
-    console.error(
-      "Halaman tidak ditemukan: page-" +
-      pageName
-    );
-
-    showToast(
-      "Halaman " +
-      pageName +
-      " tidak ditemukan."
-    );
-
-    return;
-  }
-
-  target.classList.add("active");
-
-  var buttons =
-    document.querySelectorAll(".nav-button");
-
-  buttons.forEach(function(button) {
-    button.classList.remove("active");
-
-    if (
-      button.dataset &&
-      button.dataset.page === pageName
-    ) {
-      button.classList.add("active");
-    }
-  });
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
-
-  /* DASHBOARD */
-
-  if (pageName === "dashboard") {
-    loadDashboard();
-    loadDatabaseStatus();
-  }
-
-  /* RIWAYAT */
-
-  if (pageName === "history") {
-    loadTransactionHistory();
-  }
-
-  /* PENGGAJIAN */
-
-  if (pageName === "salary") {
-    loadSalaryList();
-  }
-
-  /* PEMASUKAN */
-
-  if (pageName === "income") {
-    initializeIncomeForm();
-  }
-
-  /* PENGELUARAN */
-
-  if (pageName === "expense") {
-    initializeExpenseForm();
-  }
-}
-
-/* =========================================================
-   SUBMIT PENGELUARAN
-   ========================================================= */
-
-async function submitExpense(event) {
-  if (event) {
-    event.preventDefault();
-  }
-
-  var form = document.getElementById("expenseForm");
-  var button = document.getElementById("expenseSubmitButton");
-  var buttonText = document.getElementById("expenseSubmitText");
-
-  var tanggalElement = document.getElementById("expenseDate");
-  var kategoriElement = document.getElementById("expenseCategory");
-  var nominalElement = document.getElementById("expenseNominal");
-  var deskripsiElement = document.getElementById("expenseDescription");
-
-  var tanggal = tanggalElement ? tanggalElement.value : "";
-  var kategori = kategoriElement ? kategoriElement.value : "";
-  var nominal = nominalElement ? nominalElement.value : "";
-  var deskripsi = deskripsiElement
-    ? deskripsiElement.value.trim()
-    : "";
-
-  if (!tanggal) {
-    showToast("Tanggal pengeluaran wajib diisi.");
-    return;
-  }
-
-  if (!kategori) {
-    showToast("Kategori pengeluaran wajib dipilih.");
-    return;
-  }
-
-  if (!nominal || Number(nominal) <= 0) {
-    showToast(
-      "Nominal pengeluaran harus lebih besar dari 0."
-    );
-    return;
-  }
-
-  var nominalNumber = Number(nominal);
-
-  var confirmed = window.confirm(
-    "Simpan pengeluaran sebesar " +
-    formatRupiah(nominalNumber) +
-    ' dengan kategori "' +
-    kategori +
-    '"?'
-  );
-
-  if (!confirmed) {
-    return;
-  }
-
-  try {
-    if (button) {
-      button.disabled = true;
     }
 
-    if (buttonText) {
-      buttonText.textContent = "Menyimpan...";
-    }
-
-    var result = await apiPost({
-      action: "addExpense",
-      tanggal: tanggal,
-      nominal: nominalNumber,
-      kategori: kategori,
-      deskripsi: deskripsi,
-      userAdmin: "Aplikasi"
-    });
-
-    showExpenseResult(result.data || {});
-
-    if (form) {
-      form.reset();
-    }
-
-    if (tanggalElement) {
-      tanggalElement.value = getTodayLocal();
-    }
-
-    await loadDashboard();
-    await loadDatabaseStatus();
-
-    showToast("Pengeluaran berhasil disimpan.");
-
-  } catch (error) {
-    console.error(
-      "ADD EXPENSE ERROR:",
-      error
-    );
-
-    showToast(
-      error.message ||
-      "Pengeluaran gagal disimpan.",
-      5000
-    );
-
-  } finally {
-    if (button) {
-      button.disabled = false;
-    }
-
-    if (buttonText) {
-      buttonText.textContent =
-        "Simpan Pengeluaran";
-    }
-  }
 }
 
 
-/* =========================================================
-   HASIL PENGELUARAN
-   ========================================================= */
+/* ================================================================
+   STATIC UI
+   ================================================================ */
 
-function showExpenseResult(data) {
-  var container =
-    document.getElementById("expenseResult");
+function setupStaticUI() {
 
-  if (!container || !data) {
-    return;
-  }
+    /*
+     * Navigation.
+     */
 
-  var html = "";
+    $$('.nav-link').forEach(
+        function (button) {
 
-  html +=
-    '<div class="transaction-success-title">' +
-    "Pengeluaran Berhasil Disimpan" +
-    "</div>";
+            button.addEventListener(
+                'click',
+                function () {
 
-  html +=
-    '<div class="transaction-id">' +
-    escapeHtml(
-      data.idTransaksi || "-"
-    ) +
-    "</div>";
+                    const target =
+                        button.dataset.target;
 
-  html +=
-    '<div class="transaction-detail-grid">';
+                    if (target) {
 
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Tanggal</span>" +
-    "<strong>" +
-    escapeHtml(
-      data.tanggal || "-"
-    ) +
-    "</strong>" +
-    "</div>";
+                        showSection(target);
 
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Nominal</span>" +
-    "<strong>" +
-    formatRupiah(
-      data.nominal || 0
-    ) +
-    "</strong>" +
-    "</div>";
+                    }
 
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Kategori</span>" +
-    "<strong>" +
-    escapeHtml(
-      data.kategori || "-"
-    ) +
-    "</strong>" +
-    "</div>";
+                }
+            );
 
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Deskripsi</span>" +
-    "<strong>" +
-    escapeHtml(
-      data.deskripsi || "-"
-    ) +
-    "</strong>" +
-    "</div>";
+        }
+    );
 
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Status</span>" +
-    "<strong>TERSIMPAN</strong>" +
-    "</div>";
 
-  html += "</div>";
+    /*
+     * Tombol refresh.
+     */
 
-  container.innerHTML = html;
+    const refreshButtons = $$(
+        '[data-action="refresh"]'
+    );
 
-  container.classList.add("show");
+    refreshButtons.forEach(
+        function (button) {
 
-  container.scrollIntoView({
-    behavior: "smooth",
-    block: "center"
-  });
+            button.addEventListener(
+                'click',
+                async function () {
+
+                    await refreshAll();
+
+                }
+            );
+
+        }
+    );
+
+
+    /*
+     * Tombol logout / close tidak digunakan.
+     */
+
+
+    /*
+     * Modal close.
+     */
+
+    $$('.modal-close').forEach(
+        function (button) {
+
+            button.addEventListener(
+                'click',
+                function () {
+
+                    closeModal();
+
+                }
+            );
+
+        }
+    );
+
+
+    /*
+     * Klik area overlay untuk menutup modal.
+     */
+
+    $$('.modal').forEach(
+        function (modal) {
+
+            modal.addEventListener(
+                'click',
+                function (event) {
+
+                    if (
+                        event.target === modal
+                    ) {
+
+                        closeModal();
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+
+    /*
+     * Escape untuk menutup modal.
+     */
+
+    document.addEventListener(
+        'keydown',
+        function (event) {
+
+            if (
+                event.key === 'Escape'
+            ) {
+
+                closeModal();
+
+            }
+
+        }
+    );
+
+
+    /*
+     * Filter bulan.
+     */
+
+    $$('.month-filter').forEach(
+        function (element) {
+
+            element.addEventListener(
+                'change',
+                function () {
+
+                    renderAll();
+
+                }
+            );
+
+        }
+    );
+
 }
 
 
-/* =========================================================
-   PREVIEW PENGELUARAN
-   ========================================================= */
+/* ================================================================
+   FORM SETUP
+   ================================================================ */
 
-function updateExpensePreview() {
-  var input =
-    document.getElementById(
-      "expenseNominal"
-    );
+function setupForms() {
 
-  var preview =
-    document.getElementById(
-      "previewExpense"
-    );
+    const incomeForm =
+        $('#incomeForm');
 
-  if (!input || !preview) {
-    return;
-  }
+    if (incomeForm) {
 
-  var nominal =
-    Number(input.value || 0);
+        incomeForm.addEventListener(
+            'submit',
+            handleIncomeSubmit
+        );
 
-  if (!isFinite(nominal)) {
-    nominal = 0;
-  }
-
-  preview.textContent =
-    formatRupiah(nominal);
-}
-
-
-/* =========================================================
-   INISIALISASI FORM PENGELUARAN
-   ========================================================= */
-
-function initializeExpenseForm() {
-
-  var dateInput =
-    document.getElementById(
-      "expenseDate"
-    );
-
-  if (
-    dateInput &&
-    !dateInput.value
-  ) {
-    dateInput.value =
-      getTodayLocal();
-  }
-
-  var nominalInput =
-    document.getElementById(
-      "expenseNominal"
-    );
-
-  if (
-    nominalInput &&
-    !nominalInput.dataset.previewBound
-  ) {
-    nominalInput.addEventListener(
-      "input",
-      updateExpensePreview
-    );
-
-    nominalInput.dataset.previewBound =
-      "true";
-  }
-
-  updateExpensePreview();
-
-  var form =
-    document.getElementById(
-      "expenseForm"
-    );
-
-  if (
-    form &&
-    !form.dataset.submitBound
-  ) {
-    form.addEventListener(
-      "submit",
-      submitExpense
-    );
-
-    form.dataset.submitBound =
-      "true";
-  }
-}
-
-/* =========================================================
-   PING API
-   ========================================================= */
-
-async function testConnection() {
-  var apiStatus =
-    document.getElementById("apiStatus");
-
-  try {
-    await apiGet("ping");
-
-    setConnectionStatus(
-      true,
-      "Terhubung"
-    );
-
-    if (apiStatus) {
-      apiStatus.textContent = "ONLINE";
-      apiStatus.className = "status-success";
     }
 
-    return true;
 
-  } catch (error) {
-    console.error(
-      "API PING ERROR:",
-      error
-    );
+    const expenseForm =
+        $('#expenseForm');
 
-    setConnectionStatus(
-      false,
-      "Offline"
-    );
+    if (expenseForm) {
 
-    if (apiStatus) {
-      apiStatus.textContent = "ERROR";
-      apiStatus.className = "status-error";
+        expenseForm.addEventListener(
+            'submit',
+            handleExpenseSubmit
+        );
+
     }
 
-    return false;
-  }
-}
 
+    const employeeForm =
+        $('#employeeForm');
 
-/* =========================================================
-   LOAD SETTINGS
-   ========================================================= */
+    if (employeeForm) {
 
-async function loadSettings() {
-  try {
-    var result =
-      await apiGet("settings");
+        employeeForm.addEventListener(
+            'submit',
+            handleEmployeeSubmit
+        );
 
-    APP_STATE.settings =
-      result.data || {};
-
-    return APP_STATE.settings;
-
-  } catch (error) {
-    console.error(
-      "SETTINGS ERROR:",
-      error
-    );
-
-    APP_STATE.settings = {};
-
-    return {};
-  }
-}
-
-
-/* =========================================================
-   LOAD EMPLOYEES
-   ========================================================= */
-
-async function loadEmployees() {
-  try {
-    var result =
-      await apiGet("employees");
-
-    APP_STATE.employees =
-      Array.isArray(result.data)
-        ? result.data
-        : [];
-
-    return APP_STATE.employees;
-
-  } catch (error) {
-    console.error(
-      "EMPLOYEES ERROR:",
-      error
-    );
-
-    APP_STATE.employees = [];
-
-    return [];
-  }
-}
-
-
-/* =========================================================
-   LOAD DATABASE STATUS
-   ========================================================= */
-
-async function loadDatabaseStatus() {
-  var element =
-    document.getElementById(
-      "databaseStatus"
-    );
-
-  try {
-    var result =
-      await apiGet("databaseStatus");
-
-    var data =
-      result.data || {};
-
-    if (!element) {
-      return data;
     }
 
-    var aman = true;
+
+    /*
+     * Jika terdapat input nominal,
+     * format tampilan dapat dibantu.
+     */
+
+    $$(
+        'input[data-money]'
+    ).forEach(
+        function (input) {
+
+            input.addEventListener(
+                'input',
+                function () {
+
+                    input.value =
+                        input.value.replace(
+                            /[^0-9.,]/g,
+                            ''
+                        );
+
+                }
+            );
+
+        }
+    );
+
+}
+
+
+/* ================================================================
+   SOURCE DROPDOWN
+   ================================================================ */
+
+function populateSourceDropdown() {
+
+    const selects =
+        $$(
+            '#incomeSource, select[name="source"], select[name="sumber"]'
+        );
+
+    selects.forEach(
+        function (select) {
+
+            /*
+             * Jangan menambahkan ulang.
+             */
+
+            if (
+                select.dataset.populated === 'true'
+            ) {
+
+                return;
+
+            }
+
+            const existing =
+                Array.from(
+                    select.options
+                ).map(
+                    option =>
+                        option.value
+                );
+
+            CONFIG.SOURCES.forEach(
+                function (source) {
+
+                    if (
+                        existing.includes(source)
+                    ) {
+
+                        return;
+
+                    }
+
+                    const option =
+                        document.createElement(
+                            'option'
+                        );
+
+                    option.value =
+                        source;
+
+                    option.textContent =
+                        source;
+
+                    select.appendChild(
+                        option
+                    );
+
+                }
+            );
+
+            select.dataset.populated =
+                'true';
+
+        }
+    );
+
+}
+
+
+/* ================================================================
+   API REQUEST
+   ================================================================ */
+
+async function apiGet(
+    action,
+    params = {}
+) {
 
     if (
-      data.success === false ||
-      data.status === "ERROR" ||
-      data.status === "ERRORS"
+        !CONFIG.API_URL ||
+        CONFIG.API_URL.includes(
+            'GANTI_DENGAN'
+        )
     ) {
-      aman = false;
+
+        throw new Error(
+            'API_URL belum diisi dengan URL Web App Google Apps Script.'
+        );
+
     }
 
-    element.textContent =
-      aman ? "AMAN" : "PERIKSA";
+    const url =
+        new URL(
+            CONFIG.API_URL
+        );
 
-    element.className =
-      aman
-        ? "status-success"
-        : "status-error";
+    url.searchParams.set(
+        'action',
+        action
+    );
+
+    Object.keys(params).forEach(
+        function (key) {
+
+            if (
+                params[key] !== undefined &&
+                params[key] !== null &&
+                params[key] !== ''
+            ) {
+
+                url.searchParams.set(
+                    key,
+                    params[key]
+                );
+
+            }
+
+        }
+    );
+
+    const response =
+        await fetch(
+            url.toString(),
+            {
+                method: 'GET',
+                cache: 'no-store',
+                redirect: 'follow'
+            }
+        );
+
+    if (!response.ok) {
+
+        throw new Error(
+            'HTTP Error ' +
+            response.status
+        );
+
+    }
+
+    const data =
+        await response.json();
+
+    if (
+        data &&
+        data.success === false
+    ) {
+
+        throw new Error(
+            data.error ||
+            'Terjadi kesalahan pada server.'
+        );
+
+    }
 
     return data;
 
-  } catch (error) {
-    console.error(
-      "DATABASE STATUS ERROR:",
-      error
-    );
-
-    if (element) {
-      element.textContent = "ERROR";
-      element.className = "status-error";
-    }
-
-    return null;
-  }
 }
 
 
-/* =========================================================
-   LOAD DASHBOARD
-   ========================================================= */
+/* ================================================================
+   API POST
+   ================================================================ */
 
-async function loadDashboard() {
-  try {
-    var result =
-      await apiGet("dashboard");
+async function apiPost(
+    action,
+    payload = {}
+) {
 
-    APP_STATE.dashboard =
-      result.data || {};
+    if (
+        !CONFIG.API_URL ||
+        CONFIG.API_URL.includes(
+            'GANTI_DENGAN'
+        )
+    ) {
 
-    renderDashboard(
-      APP_STATE.dashboard
+        throw new Error(
+            'API_URL belum diisi dengan URL Web App Google Apps Script.'
+        );
+
+    }
+
+    /*
+     * Menggunakan URLSearchParams.
+     *
+     * Keuntungannya:
+     * tidak memerlukan custom Content-Type
+     * sehingga lebih aman untuk Web App Apps Script
+     * dari GitHub Pages.
+     */
+
+    const body =
+        new URLSearchParams();
+
+    body.set(
+        'action',
+        action
     );
 
-    setConnectionStatus(
-      true,
-      "Terhubung"
+    Object.keys(payload).forEach(
+        function (key) {
+
+            if (
+                payload[key] !== undefined &&
+                payload[key] !== null
+            ) {
+
+                body.set(
+                    key,
+                    String(payload[key])
+                );
+
+            }
+
+        }
     );
 
-    return APP_STATE.dashboard;
+    const response =
+        await fetch(
+            CONFIG.API_URL,
+            {
+                method: 'POST',
+                body: body,
+                redirect: 'follow'
+            }
+        );
 
-  } catch (error) {
-    console.error(
-      "DASHBOARD ERROR:",
-      error
-    );
+    if (!response.ok) {
 
-    setConnectionStatus(
-      false,
-      "Gagal terhubung"
-    );
+        throw new Error(
+            'HTTP Error ' +
+            response.status
+        );
 
-    showToast(
-      "Dashboard gagal mengambil data dari server.",
-      5000
-    );
+    }
 
-    return null;
-  }
+    const data =
+        await response.json();
+
+    if (
+        data &&
+        data.success === false
+    ) {
+
+        throw new Error(
+            data.error ||
+            'Terjadi kesalahan pada server.'
+        );
+
+    }
+
+    return data;
+
 }
 
 
-/* =========================================================
-   RENDER DASHBOARD
-   ========================================================= */
+/* ================================================================
+   LOAD ALL DATA
+   ================================================================ */
 
-function renderDashboard(data) {
-  if (!data) {
-    return;
-  }
+async function loadAllData() {
 
-  var totalIncome =
-    firstNumber(
-      data.totalPemasukan,
-      data.totalIncome,
-      data.pemasukan,
-      data.total
-    );
+    showLoading(true);
 
-  var totalExpense =
-    firstNumber(
-      data.totalPengeluaran,
-      data.totalExpense,
-      data.pengeluaran
-    );
+    try {
 
-  var kasPokja =
-    firstNumber(
-      data.kasPokja,
-      data.saldoKasPokja,
-      data.totalKasPokja
-    );
+        const results =
+            await Promise.all([
 
-  var kasPenggajian =
-    firstNumber(
-      data.kasPenggajian,
-      data.totalKasPenggajian,
-      data.saldoKasPenggajian
-    );
+                apiGet(
+                    'getDashboard'
+                ),
 
-  var totalPoints =
-    firstNumber(
-      data.totalPoin,
-      data.totalPoints
-    );
+                apiGet(
+                    'getIncome'
+                ),
 
-  var pointValue =
-    firstNumber(
-      data.nilaiPerPoin,
-      data.pointValue
-    );
+                apiGet(
+                    'getExpenses'
+                ),
 
-  var employeeCount =
-    firstNumber(
-      data.jumlahPegawai,
-      data.employeeCount
-    );
+                apiGet(
+                    'getEmployees'
+                ),
 
-  var totalSalary =
-    firstNumber(
-      data.totalGaji,
-      data.totalSalary
-    );
+                apiGet(
+                    'getPayroll'
+                ),
 
-  setText(
-    "totalIncome",
-    formatRupiah(totalIncome)
-  );
+                apiGet(
+                    'getHistory'
+                ),
 
-  setText(
-    "totalExpense",
-    formatRupiah(totalExpense)
-  );
+                apiGet(
+                    'getCash'
+                )
 
-  setText(
-    "kasPokja",
-    formatRupiah(kasPokja)
-  );
+            ]);
 
-  setText(
-    "kasPenggajian",
-    formatRupiah(kasPenggajian)
-  );
+        APP.dashboard =
+            results[0]?.data || {};
 
-  setText(
-    "totalPoints",
-    formatNumber(totalPoints)
-  );
+        APP.income =
+            results[1]?.data || [];
 
-  setText(
-    "pointValue",
-    formatRupiah(pointValue)
-  );
+        APP.expenses =
+            results[2]?.data || [];
 
-  setText(
-    "employeeCount",
-    formatNumber(employeeCount)
-  );
+        APP.employees =
+            results[3]?.data || [];
 
-  setText(
-    "totalSalary",
-    formatRupiah(totalSalary)
-  );
+        APP.payroll =
+            results[4]?.data || [];
 
-  var periode =
-    data.periode ||
-    data.period ||
-    data.bulanTahun ||
-    "-";
+        APP.history =
+            results[5]?.data || [];
 
-  setText(
-    "currentPeriod",
-    periode
-  );
-}
-
-
-/* =========================================================
-   TANGGAL HARI INI
-   ========================================================= */
-
-function getTodayLocal() {
-  var now = new Date();
-
-  var year =
-    now.getFullYear();
-
-  var month =
-    String(
-      now.getMonth() + 1
-    ).padStart(2, "0");
-
-  var day =
-    String(
-      now.getDate()
-    ).padStart(2, "0");
-
-  return (
-    year +
-    "-" +
-    month +
-    "-" +
-    day
-  );
-}
-
-
-/* =========================================================
-   FORM PEMASUKAN
-   ========================================================= */
-
-function setDefaultIncomeDate() {
-  var input =
-    document.getElementById(
-      "incomeDate"
-    );
-
-  if (!input) {
-    return;
-  }
-
-  if (!input.value) {
-    input.value =
-      getTodayLocal();
-  }
-}
-
-
-/* =========================================================
-   PREVIEW PEMASUKAN
-   ========================================================= */
-
-function updateIncomePreview() {
-  var input =
-    document.getElementById(
-      "incomeNominal"
-    );
-
-  var kasPokjaElement =
-    document.getElementById(
-      "previewKasPokja"
-    );
-
-  var kasPenggajianElement =
-    document.getElementById(
-      "previewKasPenggajian"
-    );
-
-  if (!input) {
-    return;
-  }
-
-  var nominal =
-    Number(input.value || 0);
-
-  if (!isFinite(nominal)) {
-    nominal = 0;
-  }
-
-  var kasPokja =
-    nominal * 30 / 100;
-
-  var kasPenggajian =
-    nominal * 70 / 100;
-
-  if (kasPokjaElement) {
-    kasPokjaElement.textContent =
-      formatRupiah(kasPokja);
-  }
-
-  if (kasPenggajianElement) {
-    kasPenggajianElement.textContent =
-      formatRupiah(kasPenggajian);
-  }
-}
-
-
-/* =========================================================
-   SUBMIT PEMASUKAN
-   ========================================================= */
-
-async function submitIncome(event) {
-  if (event) {
-    event.preventDefault();
-  }
-
-  var form =
-    document.getElementById(
-      "incomeForm"
-    );
-
-  var button =
-    document.getElementById(
-      "incomeSubmitButton"
-    );
-
-  var buttonText =
-    document.getElementById(
-      "incomeSubmitText"
-    );
-
-  var tanggalElement =
-    document.getElementById(
-      "incomeDate"
-    );
-
-  var kategoriElement =
-    document.getElementById(
-      "incomeCategory"
-    );
-
-  var nominalElement =
-    document.getElementById(
-      "incomeNominal"
-    );
-
-  var deskripsiElement =
-    document.getElementById(
-      "incomeDescription"
-    );
-
-  var tanggal =
-    tanggalElement
-      ? tanggalElement.value
-      : "";
-
-  var kategori =
-    kategoriElement
-      ? kategoriElement.value
-      : "";
-
-  var nominal =
-    nominalElement
-      ? nominalElement.value
-      : "";
-
-  var deskripsi =
-    deskripsiElement
-      ? deskripsiElement.value.trim()
-      : "";
-
-  if (!tanggal) {
-    showToast(
-      "Tanggal pemasukan wajib diisi."
-    );
-    return;
-  }
-
-  if (!kategori) {
-    showToast(
-      "Kategori pemasukan wajib dipilih."
-    );
-    return;
-  }
-
-  if (
-    !nominal ||
-    Number(nominal) <= 0
-  ) {
-    showToast(
-      "Nominal pemasukan harus lebih besar dari 0."
-    );
-    return;
-  }
-
-  var nominalNumber =
-    Number(nominal);
-
-  var konfirmasi =
-    window.confirm(
-      "Simpan pemasukan sebesar " +
-      formatRupiah(nominalNumber) +
-      " dengan kategori \"" +
-      kategori +
-      "\"?"
-    );
-
-  if (!konfirmasi) {
-    return;
-  }
-
-  try {
-    if (button) {
-      button.disabled = true;
-    }
-
-    if (buttonText) {
-      buttonText.textContent =
-        "Menyimpan...";
-    }
-
-    var result =
-      await apiPost({
-        action: "addIncome",
-        tanggal: tanggal,
-        nominal: nominalNumber,
-        kategori: kategori,
-        deskripsi: deskripsi,
-        userAdmin: "Aplikasi"
-      });
-
-    showIncomeResult(
-      result.data || {}
-    );
-
-    if (form) {
-      form.reset();
-    }
-
-    setDefaultIncomeDate();
-    updateIncomePreview();
-
-    await loadDashboard();
-    await loadDatabaseStatus();
-
-    showToast(
-      "Pemasukan berhasil disimpan."
-    );
-
-  } catch (error) {
-    console.error(
-      "ADD INCOME ERROR:",
-      error
-    );
-
-    showToast(
-      error.message ||
-      "Pemasukan gagal disimpan.",
-      5000
-    );
-
-  } finally {
-    if (button) {
-      button.disabled = false;
-    }
-
-    if (buttonText) {
-      buttonText.textContent =
-        "Simpan Pemasukan";
-    }
-  }
-}
-
-
-/* =========================================================
-   HASIL PEMASUKAN
-   ========================================================= */
-
-function showIncomeResult(data) {
-  var container =
-    document.getElementById(
-      "incomeResult"
-    );
-
-  if (!container || !data) {
-    return;
-  }
-
-  var html = "";
-
-  html +=
-    '<div class="transaction-success-title">' +
-    "Pemasukan Berhasil Disimpan" +
-    "</div>";
-
-  html +=
-    '<div class="transaction-id">' +
-    escapeHtml(
-      data.idTransaksi || "-"
-    ) +
-    "</div>";
-
-  html +=
-    '<div class="transaction-detail-grid">';
-
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Tanggal</span>" +
-    "<strong>" +
-    escapeHtml(
-      data.tanggal || "-"
-    ) +
-    "</strong>" +
-    "</div>";
-
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Nominal</span>" +
-    "<strong>" +
-    formatRupiah(
-      data.nominal
-    ) +
-    "</strong>" +
-    "</div>";
-
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Kategori</span>" +
-    "<strong>" +
-    escapeHtml(
-      data.kategori || "-"
-    ) +
-    "</strong>" +
-    "</div>";
-
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Kas Pokja 30%</span>" +
-    "<strong>" +
-    formatRupiah(
-      data.alokasiKasPokja
-    ) +
-    "</strong>" +
-    "</div>";
-
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Kas Penggajian 70%</span>" +
-    "<strong>" +
-    formatRupiah(
-      data.alokasiKasPenggajian
-    ) +
-    "</strong>" +
-    "</div>";
-
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Status</span>" +
-    "<strong>TERSIMPAN</strong>" +
-    "</div>";
-
-  html += "</div>";
-
-  container.innerHTML = html;
-
-  container.classList.add("show");
-
-  container.scrollIntoView({
-    behavior: "smooth",
-    block: "center"
-  });
-}
-
-
-/* =========================================================
-   INISIALISASI FORM PEMASUKAN
-   ========================================================= */
-
-function initializeIncomeForm() {
-  setDefaultIncomeDate();
-  updateIncomePreview();
-
-  var nominalInput =
-    document.getElementById(
-      "incomeNominal"
-    );
-
-  if (
-    nominalInput &&
-    !nominalInput.dataset.previewBound
-  ) {
-    nominalInput.addEventListener(
-      "input",
-      updateIncomePreview
-    );
-
-    nominalInput.dataset.previewBound =
-      "true";
-  }
-
-  var form =
-    document.getElementById(
-      "incomeForm"
-    );
-
-  if (
-    form &&
-    !form.dataset.submitBound
-  ) {
-    form.addEventListener(
-      "submit",
-      submitIncome
-    );
-
-    form.dataset.submitBound =
-      "true";
-  }
-}
-
-
-/* =========================================================
-   RIWAYAT TRANSAKSI
-   ========================================================= */
-
-async function loadTransactionHistory() {
-  var typeElement =
-    document.getElementById(
-      "historyType"
-    );
-
-  var monthElement =
-    document.getElementById(
-      "historyMonth"
-    );
-
-  var yearElement =
-    document.getElementById(
-      "historyYear"
-    );
-
-  var statusElement =
-    document.getElementById(
-      "historyStatus"
-    );
-
-  var tableBody =
-    document.getElementById(
-      "historyTableBody"
-    );
-
-  var type =
-    typeElement
-      ? typeElement.value
-      : "SEMUA";
-
-  var month =
-    monthElement
-      ? monthElement.value
-      : "";
-
-  var year =
-    yearElement
-      ? yearElement.value
-      : "";
-
-  if (statusElement) {
-    statusElement.textContent =
-      "Memuat transaksi...";
-  }
-
-  try {
-    var params = {
-      tipe: type,
-      bulan: month,
-      tahun: year
-    };
-
-    var result =
-      await apiGet(
-        "transactions",
-        params
-      );
-
-    renderTransactionHistory(
-      result.data || {}
-    );
-
-  } catch (error) {
-    console.error(
-      "LOAD TRANSACTION HISTORY ERROR:",
-      error
-    );
-
-    if (statusElement) {
-      statusElement.textContent =
-        "Gagal memuat transaksi.";
-    }
-
-    if (tableBody) {
-      tableBody.innerHTML =
-        "<tr>" +
-        '<td colspan="7" class="empty-state">' +
-        "Gagal mengambil data transaksi." +
-        "</td>" +
-        "</tr>";
-    }
-  }
-}
-
-
-/* =========================================================
-   RENDER RIWAYAT
-   ========================================================= */
-
-function renderTransactionHistory(data) {
-  var transactions =
-    Array.isArray(data.transaksi)
-      ? data.transaksi
-      : [];
-
-  var countElement =
-    document.getElementById(
-      "historyTransactionCount"
-    );
-
-  var incomeElement =
-    document.getElementById(
-      "historyTotalIncome"
-    );
-
-  var expenseElement =
-    document.getElementById(
-      "historyTotalExpense"
-    );
-
-  var statusElement =
-    document.getElementById(
-      "historyStatus"
-    );
-
-  var tableBody =
-    document.getElementById(
-      "historyTableBody"
-    );
-
-  if (countElement) {
-    countElement.textContent =
-      Number(data.jumlah || 0);
-  }
-
-  if (incomeElement) {
-    incomeElement.textContent =
-      formatRupiah(
-        data.totalPemasukan || 0
-      );
-  }
-
-  if (expenseElement) {
-    expenseElement.textContent =
-      formatRupiah(
-        data.totalPengeluaran || 0
-      );
-  }
-
-  if (!tableBody) {
-    return;
-  }
-
-  if (transactions.length === 0) {
-    tableBody.innerHTML =
-      "<tr>" +
-      '<td colspan="7" class="empty-state">' +
-      "Belum ada transaksi." +
-      "</td>" +
-      "</tr>";
-
-    if (statusElement) {
-      statusElement.textContent =
-        "Tidak ada transaksi pada filter yang dipilih.";
-    }
-
-    return;
-  }
-
-  var html = "";
-
-  transactions.forEach(function(item, index) {
-    var isIncome =
-      String(item.jenis || "").toUpperCase() ===
-      "PEMASUKAN";
-
-    var jenisLabel =
-      isIncome
-        ? "Pemasukan"
-        : "Pengeluaran";
-
-    var jenisClass =
-      isIncome
-        ? "transaction-income"
-        : "transaction-expense";
-
-    html += "<tr>";
-
-    html +=
-      "<td>" +
-      (index + 1) +
-      "</td>";
-
-    html +=
-      "<td>" +
-      escapeHtml(
-        item.idTransaksi || "-"
-      ) +
-      "</td>";
-
-    html +=
-      "<td>" +
-      escapeHtml(
-        item.tanggal || "-"
-      ) +
-      "</td>";
-
-    html +=
-      '<td><span class="' +
-      jenisClass +
-      '">' +
-      jenisLabel +
-      "</span></td>";
-
-    html +=
-      "<td>" +
-      escapeHtml(
-        item.kategori || "-"
-      ) +
-      "</td>";
-
-    html +=
-      "<td>" +
-      escapeHtml(
-        item.deskripsi || "-"
-      ) +
-      "</td>";
-
-    html +=
-      "<td><strong>" +
-      formatRupiah(
-        item.nominal || 0
-      ) +
-      "</strong></td>";
-
-    html += "</tr>";
-  });
-
-  tableBody.innerHTML = html;
-
-  if (statusElement) {
-    statusElement.textContent =
-      transactions.length +
-      " transaksi ditemukan.";
-  }
-}
-
-
-/* =========================================================
-   PENGGAJIAN
-   ========================================================= */
-
-async function loadSalaryList() {
-  var statusElement =
-    document.getElementById(
-      "salaryStatus"
-    );
-
-  var tableBody =
-    document.getElementById(
-      "salaryTableBody"
-    );
-
-  if (statusElement) {
-    statusElement.textContent =
-      "Memuat data penggajian...";
-  }
-
-  try {
-    var result =
-      await apiGet(
-        "salaryList"
-      );
-
-    renderSalaryList(
-      result.data || {}
-    );
-
-  } catch (error) {
-    console.error(
-      "SALARY LIST ERROR:",
-      error
-    );
-
-    if (statusElement) {
-      statusElement.textContent =
-        "Gagal memuat data penggajian.";
-    }
-
-    if (tableBody) {
-      tableBody.innerHTML =
-        "<tr>" +
-        '<td colspan="7" class="empty-state">' +
-        "Gagal mengambil data penggajian." +
-        "</td>" +
-        "</tr>";
-    }
-  }
-}
-
-
-/* =========================================================
-   RENDER GAJI
-   ========================================================= */
-
-function renderSalaryList(data) {
-  var employees =
-    Array.isArray(data.pegawai)
-      ? data.pegawai
-      : [];
-
-  setText(
-    "salaryKasPenggajian",
-    formatRupiah(
-      data.kasPenggajian || 0
-    )
-  );
-
-  setText(
-    "salaryTotalPoin",
-    formatNumber(
-      data.totalPoin || 0
-    )
-  );
-
-  setText(
-    "salaryPointValue",
-    formatRupiah(
-      data.nilaiPerPoin || 0
-    )
-  );
-
-  setText(
-    "salaryTotal",
-    formatRupiah(
-      data.totalGaji || 0
-    )
-  );
-
-  setText(
-    "salaryRemaining",
-    formatRupiah(
-      data.sisaKasSetelahSimulasi || 0
-    )
-  );
-
-  setText(
-    "salaryEmployeeCount",
-    formatNumber(
-      data.jumlahPegawai ||
-      employees.length
-    )
-  );
-
-  var tableBody =
-    document.getElementById(
-      "salaryTableBody"
-    );
-
-  if (!tableBody) {
-    return;
-  }
-
-  if (employees.length === 0) {
-    tableBody.innerHTML =
-      "<tr>" +
-      '<td colspan="7" class="empty-state">' +
-      "Belum ada data pegawai." +
-      "</td>" +
-      "</tr>";
-
-    return;
-  }
-
-  var html = "";
-
-  employees.forEach(function(employee, index) {
-    html += "<tr>";
-
-    html +=
-      "<td>" +
-      (index + 1) +
-      "</td>";
-
-    html +=
-      "<td>" +
-      escapeHtml(
-        employee.id || "-"
-      ) +
-      "</td>";
-
-    html +=
-      "<td><strong>" +
-      escapeHtml(
-        employee.nama || "-"
-      ) +
-      "</strong></td>";
-
-    html +=
-      "<td>" +
-      escapeHtml(
-        employee.jabatan || "-"
-      ) +
-      "</td>";
-
-    html +=
-      "<td>" +
-      formatNumber(
-        employee.poin || 0
-      ) +
-      "</td>";
-
-    html +=
-      "<td>" +
-      formatRupiah(
-        employee.gaji || 0
-      ) +
-      "</td>";
-
-    html +=
-      '<td><span class="salary-status">' +
-      escapeHtml(
-        employee.status ||
-        "Belum Dibayar"
-      ) +
-      "</span></td>";
-
-    html += "</tr>";
-  });
-
-  tableBody.innerHTML = html;
-}
-
-
-/* =========================================================
-   BAYAR SEMUA GAJI
-   ========================================================= */
-
-async function payAllSalaries() {
-  var periodeElement =
-    document.getElementById(
-      "salaryPeriod"
-    );
-
-  var periode =
-    periodeElement
-      ? periodeElement.value
-      : "";
-
-  if (!periode) {
-    showToast(
-      "Periode pembayaran wajib dipilih."
-    );
-    return;
-  }
-
-  var confirmed =
-    window.confirm(
-      "Apakah Anda yakin ingin membayar seluruh gaji untuk periode " +
-      periode +
-      "?"
-    );
-
-  if (!confirmed) {
-    return;
-  }
-
-  var button =
-    document.getElementById(
-      "payAllSalaryButton"
-    );
-
-  var buttonText =
-    document.getElementById(
-      "payAllSalaryText"
-    );
-
-  try {
-    if (button) {
-      button.disabled = true;
-    }
-
-    if (buttonText) {
-      buttonText.textContent =
-        "Memproses...";
-    }
-
-    var result =
-      await apiPost({
-        action: "payAllSalaries",
-        periode: periode
-      });
-
-    renderPaymentResult(
-      result.data || result
-    );
-
-    showToast(
-      "Pembayaran gaji berhasil."
-    );
-
-    await loadDashboard();
-    await loadSalaryList();
-    await loadDatabaseStatus();
-
-  } catch (error) {
-    console.error(
-      "PAY ALL SALARIES ERROR:",
-      error
-    );
-
-    showToast(
-      error.message ||
-      "Pembayaran gaji gagal.",
-      5000
-    );
-
-  } finally {
-    if (button) {
-      button.disabled = false;
-    }
-
-    if (buttonText) {
-      buttonText.textContent =
-        "Bayar Semua Gaji";
-    }
-  }
-}
-
-
-/* =========================================================
-   HASIL PEMBAYARAN GAJI
-   ========================================================= */
-
-function renderPaymentResult(data) {
-  var container =
-    document.getElementById(
-      "salaryPaymentResult"
-    );
-
-  if (!container || !data) {
-    return;
-  }
-
-  var html = "";
-
-  html +=
-    '<div class="transaction-success-title">' +
-    "Pembayaran Gaji Berhasil" +
-    "</div>";
-
-  html +=
-    '<div class="transaction-detail-grid">';
-
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Periode</span>" +
-    "<strong>" +
-    escapeHtml(
-      data.periode || "-"
-    ) +
-    "</strong>" +
-    "</div>";
-
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Jumlah Pegawai</span>" +
-    "<strong>" +
-    formatNumber(
-      data.jumlahPegawai || 0
-    ) +
-    "</strong>" +
-    "</div>";
-
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Total Poin</span>" +
-    "<strong>" +
-    formatNumber(
-      data.totalPoin || 0
-    ) +
-    "</strong>" +
-    "</div>";
-
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Kas Penggajian</span>" +
-    "<strong>" +
-    formatRupiah(
-      data.kasPenggajian || 0
-    ) +
-    "</strong>" +
-    "</div>";
-
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Total Gaji</span>" +
-    "<strong>" +
-    formatRupiah(
-      data.totalGaji || 0
-    ) +
-    "</strong>" +
-    "</div>";
-
-  html +=
-    '<div class="transaction-detail">' +
-    "<span>Sisa Kas</span>" +
-    "<strong>" +
-    formatRupiah(
-      data.sisaKas || 0
-    ) +
-    "</strong>" +
-    "</div>";
-
-  html += "</div>";
-
-  container.innerHTML = html;
-
-  container.classList.add("show");
-}
-
-
-/* =========================================================
-   AUTO REFRESH
-   ========================================================= */
-
-var dashboardRefreshTimer = null;
-
-function startAutoRefresh() {
-  clearInterval(
-    dashboardRefreshTimer
-  );
-
-  dashboardRefreshTimer =
-    setInterval(
-      async function() {
-        var dashboard =
-          document.getElementById(
-            "page-dashboard"
-          );
+        /*
+         * Pastikan dashboard memakai
+         * data kas terbaru.
+         */
 
         if (
-          dashboard &&
-          dashboard.classList.contains(
-            "active"
-          )
+            results[6] &&
+            results[6].data
         ) {
-          await loadDashboard();
-          await loadDatabaseStatus();
+
+            APP.dashboard =
+                Object.assign(
+                    {},
+                    APP.dashboard,
+                    results[6].data
+                );
+
         }
-      },
-      60000
-    );
-}
 
+        renderAll();
 
-/* =========================================================
-   INISIALISASI APLIKASI
-   ========================================================= */
+    } catch (error) {
 
-async function initializeApp() {
-  setConnectionStatus(
-    false,
-    "Menghubungkan..."
-  );
+        console.error(
+            'Load data error:',
+            error
+        );
 
-  var connected =
-    await testConnection();
+        showToast(
+            error.message ||
+            'Gagal mengambil data.',
+            'error'
+        );
 
-  if (!connected) {
-    return false;
-  }
+        throw error;
 
-  await loadDashboard();
-  await loadDatabaseStatus();
+    } finally {
 
-  await Promise.all([
-    loadSettings(),
-    loadEmployees()
-  ]);
+        showLoading(false);
 
-  setConnectionStatus(
-    true,
-    "Terhubung"
-  );
-
-  return true;
-}
-
-
-/* =========================================================
-   EVENT NAVIGASI
-   ========================================================= */
-
-function initializeNavigation() {
-  var buttons =
-    document.querySelectorAll(
-      ".nav-button"
-    );
-
-  buttons.forEach(function(button) {
-    if (button.dataset.navBound) {
-      return;
     }
 
-    button.addEventListener(
-      "click",
-      function() {
-        var page =
-          button.dataset.page;
-
-        if (page) {
-          showPage(page);
-        }
-      }
-    );
-
-    button.dataset.navBound =
-      "true";
-  });
 }
 
 
-/* =========================================================
-   GLOBAL FUNCTIONS
-   ========================================================= */
+/* ================================================================
+   REFRESH ALL
+   ================================================================ */
 
-/*
- * Penting:
- * HTML Anda menggunakan onclick="showPage(...)"
- * sehingga fungsi harus berada di window.
- */
+async function refreshAll() {
 
-window.showPage =
-  showPage;
+    if (APP.loading) {
+        return;
+    }
 
-window.submitIncome =
-  submitIncome;
+    try {
 
-window.payAllSalaries =
-  payAllSalaries;
+        await loadAllData();
 
-window.loadDashboard =
-  loadDashboard;
+        showToast(
+            'Data berhasil diperbarui.',
+            'success'
+        );
 
-window.loadTransactionHistory =
-  loadTransactionHistory;
+    } catch (error) {
 
-window.loadSalaryList =
-  loadSalaryList;
+        console.error(error);
 
-window.updateIncomePreview =
-  updateIncomePreview;
+    }
 
-window.showToast =
-  showToast;
-
-window.submitExpense =
-  submitExpense;
-
-window.updateExpensePreview =
-  updateExpensePreview;
+}
 
 
-/* =========================================================
-   DOM READY
-   ========================================================= */
+/* ================================================================
+   AUTO REFRESH
+   ================================================================ */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  async function() {
+function startAutoRefresh() {
 
-    console.log(
-      "Keuangan Pokja Adiwiyata: JavaScript aktif."
+    if (
+        APP.refreshTimer
+    ) {
+
+        clearInterval(
+            APP.refreshTimer
+        );
+
+    }
+
+    APP.refreshTimer =
+        setInterval(
+            async function () {
+
+                if (
+                    document.hidden
+                ) {
+
+                    return;
+
+                }
+
+                try {
+
+                    await loadAllData();
+
+                } catch (error) {
+
+                    console.warn(
+                        'Auto refresh gagal:',
+                        error
+                    );
+
+                }
+
+            },
+            CONFIG.REFRESH_INTERVAL
+        );
+
+}
+
+
+/* ================================================================
+   RENDER ALL
+   ================================================================ */
+
+function renderAll() {
+
+    renderDashboard();
+
+    renderIncome();
+
+    renderExpenses();
+
+    renderEmployees();
+
+    renderPayroll();
+
+    renderCash();
+
+    renderHistory();
+
+    updateMonthFilters();
+
+}
+
+
+/* ================================================================
+   DASHBOARD
+   ================================================================ */
+
+function renderDashboard() {
+
+    const data =
+        APP.dashboard || {};
+
+
+    /*
+     * Total pemasukan.
+     */
+
+    setText(
+        [
+            '#totalIncome',
+            '#dashboardIncome',
+            '[data-stat="income"]'
+        ],
+        formatRupiah(
+            data.totalPemasukan
+        )
     );
 
-    initializeNavigation();
 
-    initializeIncomeForm();
+    /*
+     * 30% Kas Pokja.
+     */
 
-    initializeExpenseForm();
+    setText(
+        [
+            '#totalCashAllocation',
+            '#dashboardCash',
+            '[data-stat="cash-allocation"]'
+        ],
+        formatRupiah(
+            data.totalAlokasiKas
+        )
+    );
 
-    await initializeApp();
 
-    startAutoRefresh();
+    /*
+     * Pengeluaran.
+     */
 
-  }
-);
+    setText(
+        [
+            '#totalExpense',
+            '#dashboardExpense',
+            '[data-stat="expense"]'
+        ],
+        formatRupiah(
+            data.totalPengeluaran
+        )
+    );
+
+
+    /*
+     * Saldo kas.
+     */
+
+    setText(
+        [
+            '#cashBalance',
+            '#dashboardBalance',
+            '[data-stat="balance"]'
+        ],
+        formatRupiah(
+            data.saldoKas
+        )
+    );
+
+
+    /*
+     * Dana penggajian.
+     */
+
+    setText(
+        [
+            '#payrollFund',
+            '#dashboardPayroll',
+            '[data-stat="payroll"]'
+        ],
+        formatRupiah(
+            data.totalDanaPenggajian
+        )
+    );
+
+
+    /*
+     * Jumlah pegawai.
+     */
+
+    setText(
+        [
+            '#employeeCount',
+            '[data-stat="employees"]'
+        ],
+        numberFormat(
+            data.totalPegawai
+        )
+    );
+
+
+    /*
+     * Total poin.
+     */
+
+    setText(
+        [
+            '#totalPoints',
+            '[data-stat="points"]'
+        ],
+        numberFormat(
+            data.totalPoin
+        )
+    );
+
+
+    /*
+     * Tanggal hari ini.
+     */
+
+    setText(
+        [
+            '#todayDate',
+            '#currentDate',
+            '[data-current-date]'
+        ],
+        formatDateOnly(
+            new Date()
+        )
+    );
+
+
+    updateCashStatus(
+        Number(
+            data.saldoKas || 0
+        )
+    );
+
+}
+
+
+/* ================================================================
+   CASH STATUS
+   ================================================================ */
+
+function updateCashStatus(
+    balance
+) {
+
+    const elements =
+        $$(
+            '[data-cash-status]'
+        );
+
+    elements.forEach(
+        function (element) {
+
+            element.classList.remove(
+                'cash-positive',
+                'cash-zero',
+                'cash-negative'
+            );
+
+            if (
+                balance > 0
+            ) {
+
+                element.classList.add(
+                    'cash-positive'
+                );
+
+                element.textContent =
+                    'Kas tersedia';
+
+            } else if (
+                balance === 0
+            ) {
+
+                element.classList.add(
+                    'cash-zero'
+                );
+
+                element.textContent =
+                    'Kas kosong';
+
+            } else {
+
+                element.classList.add(
+                    'cash-negative'
+                );
+
+                element.textContent =
+                    'Perlu perhatian';
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ================================================================
+   RENDER INCOME
+   ================================================================ */
+
+function renderIncome() {
+
+    const tbody =
+        firstElement([
+            '#incomeTableBody',
+            '#pemasukanTableBody',
+            '#incomeTable tbody'
+        ]);
+
+    if (!tbody) {
+        return;
+    }
+
+    const data =
+        getFilteredIncome();
+
+    if (!data.length) {
+
+        tbody.innerHTML =
+            emptyTableRow(
+                7,
+                'Belum ada data pemasukan.'
+            );
+
+        return;
+
+    }
+
+    tbody.innerHTML =
+        data.map(
+            function (item, index) {
+
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${escapeHtml(item.tanggal || '-')}</td>
+                        <td>${formatRupiah(item.nominal)}</td>
+                        <td>${escapeHtml(item.sumber || '-')}</td>
+                        <td>${formatRupiah(item.kasPokja)}</td>
+                        <td>${formatRupiah(item.penggajian)}</td>
+                        <td>${escapeHtml(item.bulan || '-')}</td>
+                    </tr>
+                `;
+
+            }
+        ).join('');
+
+}
+
+
+/* ================================================================
+   RENDER EXPENSES
+   ================================================================ */
+
+function renderExpenses() {
+
+    const tbody =
+        firstElement([
+            '#expenseTableBody',
+            '#pengeluaranTableBody',
+            '#expenseTable tbody'
+        ]);
+
+    if (!tbody) {
+        return;
+    }
+
+    const data =
+        getFilteredExpenses();
+
+    if (!data.length) {
+
+        tbody.innerHTML =
+            emptyTableRow(
+                5,
+                'Belum ada data pengeluaran.'
+            );
+
+        return;
+
+    }
+
+    tbody.innerHTML =
+        data.map(
+            function (item, index) {
+
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${escapeHtml(item.tanggal || '-')}</td>
+                        <td>${formatRupiah(item.nominal)}</td>
+                        <td class="description-cell">
+                            ${escapeHtml(item.deskripsi || '-')}
+                        </td>
+                        <td>${escapeHtml(item.bulan || '-')}</td>
+                    </tr>
+                `;
+
+            }
+        ).join('');
+
+}
+
+
+/* ================================================================
+   RENDER EMPLOYEES
+   ================================================================ */
+
+function renderEmployees() {
+
+    const tbody =
+        firstElement([
+            '#employeeTableBody',
+            '#pegawaiTableBody',
+            '#employeeTable tbody'
+        ]);
+
+    if (!tbody) {
+        return;
+    }
+
+    if (!APP.employees.length) {
+
+        tbody.innerHTML =
+            emptyTableRow(
+                6,
+                'Belum ada data pegawai.'
+            );
+
+        return;
+
+    }
+
+    tbody.innerHTML =
+        APP.employees.map(
+            function (employee, index) {
+
+                return `
+                    <tr>
+                        <td>${escapeHtml(
+                            employee.no ||
+                            index + 1
+                        )}</td>
+
+                        <td>
+                            ${escapeHtml(
+                                employee.jabatan ||
+                                '-'
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                employee.nama ||
+                                'Belum diisi'
+                            )}
+                        </td>
+
+                        <td>
+                            ${numberFormat(
+                                employee.poin
+                            )}
+                        </td>
+
+                        <td>
+                            <button
+                                type="button"
+                                class="btn-small"
+                                data-edit-employee="${employee.row}">
+                                Edit
+                            </button>
+                        </td>
+                    </tr>
+                `;
+
+            }
+        ).join('');
+
+
+    /*
+     * Tombol edit.
+     */
+
+    $$(
+        '[data-edit-employee]'
+    ).forEach(
+        function (button) {
+
+            button.addEventListener(
+                'click',
+                function () {
+
+                    const row =
+                        Number(
+                            button.dataset.editEmployee
+                        );
+
+                    openEmployeeEditor(
+                        row
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+    /*
+     * Total pegawai.
+     */
+
+    setText(
+        [
+            '#employeeTotal',
+            '[data-employee-total]'
+        ],
+        numberFormat(
+            APP.employees.length
+        )
+    );
+
+
+    /*
+     * Total poin.
+     */
+
+    const totalPoints =
+        APP.employees.reduce(
+            function (sum, employee) {
+
+                return sum +
+                    Number(
+                        employee.poin || 0
+                    );
+
+            },
+            0
+        );
+
+    setText(
+        [
+            '#employeePoints',
+            '[data-employee-points]'
+        ],
+        numberFormat(
+            totalPoints
+        )
+    );
+
+}
+
+
+/* ================================================================
+   RENDER PAYROLL
+   ================================================================ */
+
+function renderPayroll() {
+
+    const tbody =
+        firstElement([
+            '#payrollTableBody',
+            '#penggajianTableBody',
+            '#payrollTable tbody'
+        ]);
+
+    if (!tbody) {
+        return;
+    }
+
+    const selectedMonth =
+        getSelectedPayrollMonth();
+
+    let rows = [];
+
+    if (
+        selectedMonth
+    ) {
+
+        const monthData =
+            APP.payroll.find(
+                function (item) {
+
+                    return item.bulan ===
+                        selectedMonth;
+
+                }
+            );
+
+        if (monthData) {
+
+            rows =
+                monthData.pegawai.map(
+                    function (employee) {
+
+                        return {
+
+                            bulan:
+                                monthData.bulan,
+
+                            totalPemasukan:
+                                monthData.totalPemasukan,
+
+                            dana70:
+                                monthData.dana70,
+
+                            totalPoin:
+                                monthData.totalPoin,
+
+                            nilai1Poin:
+                                monthData.nilai1Poin,
+
+                            jabatan:
+                                employee.jabatan,
+
+                            nama:
+                                employee.nama,
+
+                            poin:
+                                employee.poin,
+
+                            gaji:
+                                employee.gaji,
+
+                            status:
+                                employee.status
+
+                        };
+
+                    }
+                );
+
+        }
+
+    } else {
+
+        /*
+         * Jika belum memilih bulan,
+         * tampilkan bulan terbaru.
+         */
+
+        if (
+            APP.payroll.length
+        ) {
+
+            const latest =
+                APP.payroll[0];
+
+            rows =
+                latest.pegawai.map(
+                    function (employee) {
+
+                        return {
+
+                            bulan:
+                                latest.bulan,
+
+                            totalPemasukan:
+                                latest.totalPemasukan,
+
+                            dana70:
+                                latest.dana70,
+
+                            totalPoin:
+                                latest.totalPoin,
+
+                            nilai1Poin:
+                                latest.nilai1Poin,
+
+                            jabatan:
+                                employee.jabatan,
+
+                            nama:
+                                employee.nama,
+
+                            poin:
+                                employee.poin,
+
+                            gaji:
+                                employee.gaji,
+
+                            status:
+                                employee.status
+
+                        };
+
+                    }
+                );
+
+            updatePayrollSummary(
+                latest
+            );
+
+        }
+
+    }
+
+
+    if (!rows.length) {
+
+        tbody.innerHTML =
+            emptyTableRow(
+                9,
+                'Belum ada data penggajian.'
+            );
+
+        return;
+
+    }
+
+
+    tbody.innerHTML =
+        rows.map(
+            function (item, index) {
+
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+
+                        <td>
+                            ${escapeHtml(
+                                item.bulan || '-'
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                item.jabatan || '-'
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                item.nama ||
+                                'Belum diisi'
+                            )}
+                        </td>
+
+                        <td>
+                            ${numberFormat(
+                                item.poin
+                            )}
+                        </td>
+
+                        <td>
+                            ${formatRupiah(
+                                item.nilai1Poin
+                            )}
+                        </td>
+
+                        <td>
+                            ${formatRupiah(
+                                item.gaji
+                            )}
+                        </td>
+
+                        <td>
+                            <span class="status-badge">
+                                ${escapeHtml(
+                                    item.status ||
+                                    '-'
+                                )}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+
+            }
+        ).join('');
+
+}
+
+
+/* ================================================================
+   PAYROLL SUMMARY
+   ================================================================ */
+
+function updatePayrollSummary(
+    month
+) {
+
+    if (!month) {
+        return;
+    }
+
+    setText(
+        [
+            '#payrollMonth',
+            '[data-payroll-month]'
+        ],
+        month.bulan || '-'
+    );
+
+    setText(
+        [
+            '#payrollIncome',
+            '[data-payroll-income]'
+        ],
+        formatRupiah(
+            month.totalPemasukan
+        )
+    );
+
+    setText(
+        [
+            '#payroll70',
+            '#payrollFundMonth',
+            '[data-payroll-fund]'
+        ],
+        formatRupiah(
+            month.dana70
+        )
+    );
+
+    setText(
+        [
+            '#payrollTotalPoints',
+            '[data-payroll-points]'
+        ],
+        numberFormat(
+            month.totalPoin
+        )
+    );
+
+    setText(
+        [
+            '#payrollPointValue',
+            '[data-point-value]'
+        ],
+        formatRupiah(
+            month.nilai1Poin
+        )
+    );
+
+}
+
+
+/* ================================================================
+   RENDER CASH
+   ================================================================ */
+
+function renderCash() {
+
+    const data =
+        APP.dashboard || {};
+
+    setText(
+        [
+            '#cashIncome',
+            '[data-cash-income]'
+        ],
+        formatRupiah(
+            data.totalPemasukan
+        )
+    );
+
+    setText(
+        [
+            '#cashAllocation',
+            '[data-cash-allocation]'
+        ],
+        formatRupiah(
+            data.totalAlokasiKas
+        )
+    );
+
+    setText(
+        [
+            '#cashExpense',
+            '[data-cash-expense]'
+        ],
+        formatRupiah(
+            data.totalPengeluaran
+        )
+    );
+
+    setText(
+        [
+            '#cashBalance',
+            '#cashRemaining',
+            '[data-cash-balance]'
+        ],
+        formatRupiah(
+            data.saldoKas
+        )
+    );
+
+    setText(
+        [
+            '#cashPayroll',
+            '[data-cash-payroll]'
+        ],
+        formatRupiah(
+            data.totalDanaPenggajian
+        )
+    );
+
+}
+
+
+/* ================================================================
+   RENDER HISTORY
+   ================================================================ */
+
+function renderHistory() {
+
+    const tbody =
+        firstElement([
+            '#historyTableBody',
+            '#riwayatTableBody',
+            '#historyTable tbody'
+        ]);
+
+    if (!tbody) {
+        return;
+    }
+
+    const data =
+        getFilteredHistory();
+
+    if (!data.length) {
+
+        tbody.innerHTML =
+            emptyTableRow(
+                7,
+                'Belum ada riwayat transaksi.'
+            );
+
+        return;
+
+    }
+
+    tbody.innerHTML =
+        data.map(
+            function (item, index) {
+
+                const typeClass =
+                    item.jenis === 'PEMASUKAN'
+                        ? 'income'
+                        : 'expense';
+
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+
+                        <td>
+                            ${escapeHtml(
+                                item.tanggal || '-'
+                            )}
+                        </td>
+
+                        <td>
+                            <span class="transaction-type ${typeClass}">
+                                ${escapeHtml(
+                                    item.jenis || '-'
+                                )}
+                            </span>
+                        </td>
+
+                        <td>
+                            ${formatRupiah(
+                                item.nominal
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                item.keterangan ||
+                                '-'
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(
+                                item.alokasi ||
+                                '-'
+                            )}
+                        </td>
+
+                        <td>
+                            ${formatRupiah(
+                                item.saldoKas
+                            )}
+                        </td>
+                    </tr>
+                `;
+
+            }
+        ).join('');
+
+}
+
+
+/* ================================================================
+   FILTER DATA
+   ================================================================ */
+
+function getSelectedMonth() {
+
+    const filter =
+        firstElement([
+            '#monthFilter',
+            '.month-filter'
+        ]);
+
+    if (!filter) {
+        return '';
+    }
+
+    return filter.value || '';
+
+}
+
+
+function getSelectedPayrollMonth() {
+
+    const filter =
+        firstElement([
+            '#payrollMonthFilter',
+            '#monthPayrollFilter',
+            '[data-payroll-month-filter]'
+        ]);
+
+    if (!filter) {
+
+        return APP.payroll.length
+            ? APP.payroll[0].bulan
+            : '';
+
+    }
+
+    return filter.value || '';
+
+}
+
+
+function getFilteredIncome() {
+
+    const month =
+        getSelectedMonth();
+
+    if (!month) {
+        return APP.income;
+    }
+
+    return APP.income.filter(
+        function (item) {
+
+            return item.bulan === month;
+
+        }
+    );
+
+}
+
+
+function getFilteredExpenses() {
+
+    const month =
+        getSelectedMonth();
+
+    if (!month) {
+        return APP.expenses;
+    }
+
+    return APP.expenses.filter(
+        function (item) {
+
+            return item.bulan === month;
+
+        }
+    );
+
+}
+
+
+function getFilteredHistory() {
+
+    const month =
+        getSelectedMonth();
+
+    if (!month) {
+        return APP.history;
+    }
+
+    return APP.history.filter(
+        function (item) {
+
+            return getMonthFromDateString(
+                item.tanggal
+            ) === month;
+
+        }
+    );
+
+}
+
+
+/* ================================================================
+   UPDATE MONTH FILTERS
+   ================================================================ */
+
+function updateMonthFilters() {
+
+    const months =
+        new Set();
+
+    APP.income.forEach(
+        function (item) {
+
+            if (item.bulan) {
+                months.add(
+                    item.bulan
+                );
+            }
+
+        }
+    );
+
+    APP.expenses.forEach(
+        function (item) {
+
+            if (item.bulan) {
+                months.add(
+                    item.bulan
+                );
+            }
+
+        }
+    );
+
+    APP.payroll.forEach(
+        function (item) {
+
+            if (item.bulan) {
+                months.add(
+                    item.bulan
+                );
+            }
+
+        }
+    );
+
+    APP.history.forEach(
+        function (item) {
+
+            const month =
+                getMonthFromDateString(
+                    item.tanggal
+                );
+
+            if (month) {
+                months.add(month);
+            }
+
+        }
+    );
+
+    const sortedMonths =
+        Array.from(months)
+            .sort()
+            .reverse();
+
+
+    $$('.month-filter').forEach(
+        function (select) {
+
+            const current =
+                select.value;
+
+            const isPayroll =
+                select.matches(
+                    '#payrollMonthFilter, #monthPayrollFilter, [data-payroll-month-filter]'
+                );
+
+            select.innerHTML = '';
+
+            if (!isPayroll) {
+
+                const allOption =
+                    document.createElement(
+                        'option'
+                    );
+
+                allOption.value =
+                    '';
+
+                allOption.textContent =
+                    'Semua Bulan';
+
+                select.appendChild(
+                    allOption
+                );
+
+            }
+
+            sortedMonths.forEach(
+                function (month) {
+
+                    const option =
+                        document.createElement(
+                            'option'
+                        );
+
+                    option.value =
+                        month;
+
+                    option.textContent =
+                        formatMonthLabel(
+                            month
+                        );
+
+                    select.appendChild(
+                        option
+                    );
+
+                }
+            );
+
+
+            if (
+                current &&
+                sortedMonths.includes(
+                    current
+                )
+            ) {
+
+                select.value =
+                    current;
+
+            } else if (
+                isPayroll &&
+                sortedMonths.length
+            ) {
+
+                select.value =
+                    sortedMonths[0];
+
+            } else {
+
+                select.value =
+                    '';
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ================================================================
+   SUBMIT PEMASUKAN
+   ================================================================ */
+
+async function handleIncomeSubmit(
+    event
+) {
+
+    event.preventDefault();
+
+    const form =
+        event.currentTarget;
+
+    const formData =
+        new FormData(form);
+
+    const nominal =
+        formData.get('nominal');
+
+    const source =
+        formData.get('source') ||
+        formData.get('sumber') ||
+        formData.get('sumberDana');
+
+    const date =
+        formData.get('date') ||
+        formData.get('tanggal') ||
+        '';
+
+
+    if (
+        parseMoney(nominal) <= 0
+    ) {
+
+        showToast(
+            'Nominal pemasukan harus lebih dari 0.',
+            'error'
+        );
+
+        return;
+
+    }
+
+    if (!source) {
+
+        showToast(
+            'Silakan pilih sumber dana.',
+            'error'
+        );
+
+        return;
+
+    }
+
+
+    const submitButton =
+        form.querySelector(
+            'button[type="submit"]'
+        );
+
+    setButtonLoading(
+        submitButton,
+        true,
+        'Menyimpan...'
+    );
+
+    try {
+
+        await apiPost(
+            'addIncome',
+            {
+                date:
+                    date,
+
+                nominal:
+                    parseMoney(nominal),
+
+                source:
+                    source
+            }
+        );
+
+        form.reset();
+
+        setDefaultDate(
+            form
+        );
+
+        await loadAllData();
+
+        showToast(
+            'Pemasukan berhasil disimpan.',
+            'success'
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            error.message ||
+            'Gagal menyimpan pemasukan.',
+            'error'
+        );
+
+    } finally {
+
+        setButtonLoading(
+            submitButton,
+            false
+        );
+
+    }
+
+}
+
+
+/* ================================================================
+   SUBMIT PENGELUARAN
+   ================================================================ */
+
+async function handleExpenseSubmit(
+    event
+) {
+
+    event.preventDefault();
+
+    const form =
+        event.currentTarget;
+
+    const formData =
+        new FormData(form);
+
+    const nominal =
+        formData.get('nominal');
+
+    const description =
+        formData.get('description') ||
+        formData.get('deskripsi');
+
+    const date =
+        formData.get('date') ||
+        formData.get('tanggal') ||
+        '';
+
+
+    if (
+        parseMoney(nominal) <= 0
+    ) {
+
+        showToast(
+            'Nominal pengeluaran harus lebih dari 0.',
+            'error'
+        );
+
+        return;
+
+    }
+
+    if (
+        !String(description || '').trim()
+    ) {
+
+        showToast(
+            'Deskripsi pengeluaran wajib diisi.',
+            'error'
+        );
+
+        return;
+
+    }
+
+
+    if (
+        countWords(description) > 500
+    ) {
+
+        showToast(
+            'Deskripsi maksimal 500 kata.',
+            'error'
+        );
+
+        return;
+
+    }
+
+
+    const balance =
+        Number(
+            APP.dashboard?.saldoKas ||
+            0
+        );
+
+    if (
+        parseMoney(nominal) >
+        balance
+    ) {
+
+        showToast(
+            'Saldo Kas Pokja tidak mencukupi.',
+            'error'
+        );
+
+        return;
+
+    }
+
+
+    const submitButton =
+        form.querySelector(
+            'button[type="submit"]'
+        );
+
+    setButtonLoading(
+        submitButton,
+        true,
+        'Menyimpan...'
+    );
+
+    try {
+
+        await apiPost(
+            'addExpense',
+            {
+                date:
+                    date,
+
+                nominal:
+                    parseMoney(nominal),
+
+                description:
+                    String(
+                        description
+                    ).trim()
+            }
+        );
+
+        form.reset();
+
+        setDefaultDate(
+            form
+        );
+
+        await loadAllData();
+
+        showToast(
+            'Pengeluaran berhasil disimpan.',
+            'success'
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            error.message ||
+            'Gagal menyimpan pengeluaran.',
+            'error'
+        );
+
+    } finally {
+
+        setButtonLoading(
+            submitButton,
+            false
+        );
+
+    }
+
+}
+
+
+/* ================================================================
+   EMPLOYEE EDITOR
+   ================================================================ */
+
+function openEmployeeEditor(
+    row
+) {
+
+    const employee =
+        APP.employees.find(
+            function (item) {
+
+                return Number(item.row) ===
+                    Number(row);
+
+            }
+        );
+
+    if (!employee) {
+
+        showToast(
+            'Data pegawai tidak ditemukan.',
+            'error'
+        );
+
+        return;
+
+    }
+
+    const name =
+        prompt(
+            'Masukkan nama pegawai:',
+            employee.nama || ''
+        );
+
+    if (
+        name === null
+    ) {
+
+        return;
+
+    }
+
+    const trimmed =
+        name.trim();
+
+    if (!trimmed) {
+
+        showToast(
+            'Nama pegawai tidak boleh kosong.',
+            'error'
+        );
+
+        return;
+
+    }
+
+    saveEmployee(
+        employee.row,
+        trimmed
+    );
+
+}
+
+
+/* ================================================================
+   SAVE EMPLOYEE
+   ================================================================ */
+
+async function saveEmployee(
+    row,
+    name
+) {
+
+    try {
+
+        showLoading(true);
+
+        await apiPost(
+            'updateEmployee',
+            {
+                row:
+                    row,
+
+                name:
+                    name
+            }
+        );
+
+        await loadAllData();
+
+        showToast(
+            'Nama pegawai berhasil diperbarui.',
+            'success'
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            error.message ||
+            'Gagal memperbarui pegawai.',
+            'error'
+        );
+
+    } finally {
+
+        showLoading(false);
+
+    }
+
+}
+
+
+/* ================================================================
+   EMPLOYEE FORM
+   ================================================================ */
+
+async function handleEmployeeSubmit(
+    event
+) {
+
+    event.preventDefault();
+
+    const form =
+        event.currentTarget;
+
+    const formData =
+        new FormData(form);
+
+    const row =
+        formData.get('row');
+
+    const name =
+        formData.get('name') ||
+        formData.get('nama');
+
+    if (!row) {
+
+        showToast(
+            'Baris pegawai tidak ditemukan.',
+            'error'
+        );
+
+        return;
+
+    }
+
+    if (
+        !String(name || '').trim()
+    ) {
+
+        showToast(
+            'Nama pegawai wajib diisi.',
+            'error'
+        );
+
+        return;
+
+    }
+
+    await saveEmployee(
+        row,
+        String(name).trim()
+    );
+
+    form.reset();
+
+}
+
+
+/* ================================================================
+   SHOW SECTION
+   ================================================================ */
+
+function showSection(
+    sectionId
+) {
+
+    if (!sectionId) {
+        return;
+    }
+
+    const sections =
+        $$(
+            '[data-section]'
+        );
+
+    sections.forEach(
+        function (section) {
+
+            const active =
+                section.dataset.section ===
+                sectionId;
+
+            section.classList.toggle(
+                'active',
+                active
+            );
+
+            section.hidden =
+                !active;
+
+        }
+    );
+
+
+    /*
+     * Navigasi lama berbasis ID.
+     */
+
+    $$('.page-section').forEach(
+        function (section) {
+
+            if (
+                section.id ===
+                sectionId
+            ) {
+
+                section.classList.add(
+                    'active'
+                );
+
+                section.hidden =
+                    false;
+
+            } else {
+
+                section.classList.remove(
+                    'active'
+                );
+
+            }
+
+        }
+    );
+
+
+    $$('.nav-link').forEach(
+        function (link) {
+
+            link.classList.toggle(
+                'active',
+                link.dataset.target ===
+                sectionId
+            );
+
+        }
+    );
+
+}
+
+
+/* ================================================================
+   MODAL
+   ================================================================ */
+
+function openModal(
+    selector
+) {
+
+    const modal =
+        $(selector);
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add(
+        'open'
+    );
+
+    modal.hidden =
+        false;
+
+    document.body.classList.add(
+        'modal-open'
+    );
+
+}
+
+
+function closeModal() {
+
+    $$('.modal').forEach(
+        function (modal) {
+
+            modal.classList.remove(
+                'open'
+            );
+
+            modal.hidden =
+                true;
+
+        }
+    );
+
+    document.body.classList.remove(
+        'modal-open'
+    );
+
+}
+
+
+/* ================================================================
+   LOADING
+   ================================================================ */
+
+function showLoading(
+    state
+) {
+
+    APP.loading =
+        Boolean(state);
+
+    const loaders =
+        $$(
+            '#loadingOverlay, .loading-overlay, [data-loading]'
+        );
+
+    loaders.forEach(
+        function (element) {
+
+            element.hidden =
+                !state;
+
+            element.classList.toggle(
+                'active',
+                state
+            );
+
+        }
+    );
+
+}
+
+
+function setButtonLoading(
+    button,
+    state,
+    text
+) {
+
+    if (!button) {
+        return;
+    }
+
+    if (state) {
+
+        button.dataset.originalText =
+            button.innerHTML;
+
+        button.disabled =
+            true;
+
+        button.innerHTML =
+            text ||
+            'Memproses...';
+
+    } else {
+
+        button.disabled =
+            false;
+
+        if (
+            button.dataset.originalText
+        ) {
+
+            button.innerHTML =
+                button.dataset.originalText;
+
+        }
+
+    }
+
+}
+
+
+/* ================================================================
+   TOAST
+   ================================================================ */
+
+function showToast(
+    message,
+    type = 'info'
+) {
+
+    let container =
+        $('#toastContainer');
+
+    if (!container) {
+
+        container =
+            document.createElement(
+                'div'
+            );
+
+        container.id =
+            'toastContainer';
+
+        document.body.appendChild(
+            container
+        );
+
+    }
+
+    const toast =
+        document.createElement(
+            'div'
+        );
+
+    toast.className =
+        'toast toast-' +
+        type;
+
+    toast.textContent =
+        message;
+
+    container.appendChild(
+        toast
+    );
+
+    requestAnimationFrame(
+        function () {
+
+            toast.classList.add(
+                'show'
+            );
+
+        }
+    );
+
+    setTimeout(
+        function () {
+
+            toast.classList.remove(
+                'show'
+            );
+
+            setTimeout(
+                function () {
+
+                    toast.remove();
+
+                },
+                300
+            );
+
+        },
+        3500
+    );
+
+}
+
+
+/* ================================================================
+   CLOCK
+   ================================================================ */
+
+function updateClock() {
+
+    const now =
+        new Date();
+
+    const time =
+        now.toLocaleTimeString(
+            'id-ID',
+            {
+                timeZone:
+                    CONFIG.TIMEZONE,
+
+                hour:
+                    '2-digit',
+
+                minute:
+                    '2-digit',
+
+                second:
+                    '2-digit'
+            }
+        );
+
+    const date =
+        now.toLocaleDateString(
+            'id-ID',
+            {
+                timeZone:
+                    CONFIG.TIMEZONE,
+
+                weekday:
+                    'long',
+
+                day:
+                    '2-digit',
+
+                month:
+                    'long',
+
+                year:
+                    'numeric'
+            }
+        );
+
+
+    setText(
+        [
+            '#clock',
+            '#currentTime',
+            '[data-clock]'
+        ],
+        time
+    );
+
+
+    setText(
+        [
+            '#currentDate',
+            '#todayDate',
+            '[data-current-date]'
+        ],
+        date
+    );
+
+}
+
+
+/* ================================================================
+   DEFAULT DATE
+   ================================================================ */
+
+function setDefaultDate(
+    form
+) {
+
+    if (!form) {
+        return;
+    }
+
+    const dateInput =
+        form.querySelector(
+            'input[name="date"], input[name="tanggal"]'
+        );
+
+    if (!dateInput) {
+        return;
+    }
+
+    /*
+     * Untuk input type=date,
+     * gunakan tanggal Asia/Jakarta.
+     */
+
+    const now =
+        new Date();
+
+    const parts =
+        new Intl.DateTimeFormat(
+            'en-CA',
+            {
+                timeZone:
+                    CONFIG.TIMEZONE,
+
+                year:
+                    'numeric',
+
+                month:
+                    '2-digit',
+
+                day:
+                    '2-digit'
+            }
+        ).formatToParts(now);
+
+    const values = {};
+
+    parts.forEach(
+        function (part) {
+
+            if (
+                part.type !== 'literal'
+            ) {
+
+                values[part.type] =
+                    part.value;
+
+            }
+
+        }
+    );
+
+    dateInput.value =
+        values.year +
+        '-' +
+        values.month +
+        '-' +
+        values.day;
+
+}
+
+
+/* ================================================================
+   FORMAT RUPIAH
+   ================================================================ */
+
+function formatRupiah(
+    value
+) {
+
+    const number =
+        Number(value) || 0;
+
+    return new Intl.NumberFormat(
+        'id-ID',
+        {
+            style:
+                'currency',
+
+            currency:
+                'IDR',
+
+            minimumFractionDigits:
+                0,
+
+            maximumFractionDigits:
+                2
+        }
+    ).format(number);
+
+}
+
+
+/* ================================================================
+   FORMAT NUMBER
+   ================================================================ */
+
+function numberFormat(
+    value
+) {
+
+    return new Intl.NumberFormat(
+        'id-ID',
+        {
+            maximumFractionDigits:
+                2
+        }
+    ).format(
+        Number(value) || 0
+    );
+
+}
+
+
+/* ================================================================
+   PARSE MONEY
+   ================================================================ */
+
+function parseMoney(
+    value
+) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return 0;
+
+    }
+
+    if (
+        typeof value === 'number'
+    ) {
+
+        return value;
+
+    }
+
+    let text =
+        String(value)
+            .trim()
+            .replace(/\s/g, '');
+
+    if (!text) {
+        return 0;
+    }
+
+
+    /*
+     * Indonesia:
+     * 1.500.000
+     * 1.500.000,50
+     */
+
+    if (
+        text.includes('.') &&
+        text.includes(',')
+    ) {
+
+        text =
+            text
+                .replace(/\./g, '')
+                .replace(',', '.');
+
+    } else if (
+        text.includes('.')
+    ) {
+
+        /*
+         * Titik dianggap pemisah ribuan.
+         */
+
+        text =
+            text.replace(
+                /\./g,
+                ''
+            );
+
+    } else if (
+        text.includes(',')
+    ) {
+
+        text =
+            text.replace(
+                ',',
+                '.'
+            );
+
+    }
+
+
+    text =
+        text.replace(
+            /[^0-9.-]/g,
+            ''
+        );
+
+    const number =
+        Number(text);
+
+    return isNaN(number)
+        ? 0
+        : number;
+
+}
+
+
+/* ================================================================
+   COUNT WORDS
+   ================================================================ */
+
+function countWords(
+    text
+) {
+
+    const value =
+        String(
+            text || ''
+        ).trim();
+
+    if (!value) {
+        return 0;
+    }
+
+    return value
+        .split(/\s+/)
+        .filter(
+            function (word) {
+                return word.length > 0;
+            }
+        )
+        .length;
+
+}
+
+
+/* ================================================================
+   DATE FORMAT
+   ================================================================ */
+
+function formatDateOnly(
+    date
+) {
+
+    return new Intl.DateTimeFormat(
+        'id-ID',
+        {
+            timeZone:
+                CONFIG.TIMEZONE,
+
+            weekday:
+                'long',
+
+            day:
+                '2-digit',
+
+            month:
+                'long',
+
+            year:
+                'numeric'
+        }
+    ).format(date);
+
+}
+
+
+/* ================================================================
+   MONTH LABEL
+   ================================================================ */
+
+function formatMonthLabel(
+    month
+) {
+
+    if (
+        !month ||
+        !month.includes('-')
+    ) {
+
+        return month || '-';
+
+    }
+
+    const parts =
+        month.split('-');
+
+    if (
+        parts.length !== 2
+    ) {
+
+        return month;
+
+    }
+
+    const year =
+        Number(parts[0]);
+
+    const monthNumber =
+        Number(parts[1]);
+
+    if (
+        !year ||
+        !monthNumber
+    ) {
+
+        return month;
+
+    }
+
+    const date =
+        new Date(
+            year,
+            monthNumber - 1,
+            1
+        );
+
+    return new Intl.DateTimeFormat(
+        'id-ID',
+        {
+            month:
+                'long',
+
+            year:
+                'numeric'
+        }
+    ).format(date);
+
+}
+
+
+/* ================================================================
+   GET MONTH FROM DATE STRING
+   ================================================================ */
+
+function getMonthFromDateString(
+    value
+) {
+
+    if (!value) {
+        return '';
+    }
+
+    /*
+     * Backend menghasilkan:
+     * dd/MM/yyyy HH:mm:ss
+     */
+
+    const match =
+        String(value).match(
+            /^(\d{2})\/(\d{2})\/(\d{4})/
+        );
+
+    if (match) {
+
+        return (
+            match[3] +
+            '-' +
+            match[2]
+        );
+
+    }
+
+    /*
+     * Jika format lain.
+     */
+
+    const date =
+        new Date(value);
+
+    if (
+        isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return '';
+
+    }
+
+    const parts =
+        new Intl.DateTimeFormat(
+            'en-CA',
+            {
+                timeZone:
+                    CONFIG.TIMEZONE,
+
+                year:
+                    'numeric',
+
+                month:
+                    '2-digit'
+            }
+        ).formatToParts(date);
+
+    let year = '';
+    let month = '';
+
+    parts.forEach(
+        function (part) {
+
+            if (
+                part.type === 'year'
+            ) {
+
+                year =
+                    part.value;
+
+            }
+
+            if (
+                part.type === 'month'
+            ) {
+
+                month =
+                    part.value;
+
+            }
+
+        }
+    );
+
+    if (
+        year &&
+        month
+    ) {
+
+        return (
+            year +
+            '-' +
+            month
+        );
+
+    }
+
+    return '';
+
+}
+
+
+/* ================================================================
+   HTML ESCAPE
+   ================================================================ */
+
+function escapeHtml(
+    value
+) {
+
+    return String(
+        value === null ||
+        value === undefined
+            ? ''
+            : value
+    )
+        .replace(
+            /&/g,
+            '&amp;'
+        )
+        .replace(
+            /</g,
+            '&lt;'
+        )
+        .replace(
+            />/g,
+            '&gt;'
+        )
+        .replace(
+            /"/g,
+            '&quot;'
+        )
+        .replace(
+            /'/g,
+            '&#039;'
+        );
+
+}
+
+
+/* ================================================================
+   EMPTY TABLE ROW
+   ================================================================ */
+
+function emptyTableRow(
+    colspan,
+    message
+) {
+
+    return `
+        <tr>
+            <td
+                colspan="${colspan}"
+                class="empty-table">
+                ${escapeHtml(message)}
+            </td>
+        </tr>
+    `;
+
+}
+
+
+/* ================================================================
+   SET TEXT
+   ================================================================ */
+
+function setText(
+    selectors,
+    value
+) {
+
+    if (
+        !Array.isArray(selectors)
+    ) {
+
+        selectors =
+            [selectors];
+
+    }
+
+    for (
+        let i = 0;
+        i < selectors.length;
+        i++
+    ) {
+
+        const elements =
+            $$(selectors[i]);
+
+        if (
+            elements.length
+        ) {
+
+            elements.forEach(
+                function (element) {
+
+                    element.textContent =
+                        value;
+
+                }
+            );
+
+            return;
+
+        }
+
+    }
+
+}
+
+
+/* ================================================================
+   FIRST ELEMENT
+   ================================================================ */
+
+function firstElement(
+    selectors
+) {
+
+    for (
+        let i = 0;
+        i < selectors.length;
+        i++
+    ) {
+
+        const element =
+            $(selectors[i]);
+
+        if (element) {
+            return element;
+        }
+
+    }
+
+    return null;
+
+}
+
+
+/* ================================================================
+   EXPORT DATA
+   ================================================================ */
+
+function exportCurrentData(
+    type
+) {
+
+    let data = [];
+    let filename =
+        'data-keuangan.csv';
+
+    if (
+        type === 'income'
+    ) {
+
+        data =
+            APP.income.map(
+                function (item) {
+
+                    return [
+                        item.tanggal,
+                        item.nominal,
+                        item.sumber,
+                        item.kasPokja,
+                        item.penggajian,
+                        item.bulan
+                    ];
+
+                }
+            );
+
+        filename =
+            'pemasukan.csv';
+
+    } else if (
+        type === 'expense'
+    ) {
+
+        data =
+            APP.expenses.map(
+                function (item) {
+
+                    return [
+                        item.tanggal,
+                        item.nominal,
+                        item.deskripsi,
+                        item.bulan
+                    ];
+
+                }
+            );
+
+        filename =
+            'pengeluaran.csv';
+
+    } else if (
+        type === 'history'
+    ) {
+
+        data =
+            APP.history.map(
+                function (item) {
+
+                    return [
+                        item.tanggal,
+                        item.jenis,
+                        item.nominal,
+                        item.keterangan,
+                        item.alokasi,
+                        item.saldoKas
+                    ];
+
+                }
+            );
+
+        filename =
+            'riwayat-keuangan.csv';
+
+    } else {
+
+        showToast(
+            'Jenis data tidak dikenali.',
+            'error'
+        );
+
+        return;
+
+    }
+
+
+    if (!data.length) {
+
+        showToast(
+            'Tidak ada data untuk diekspor.',
+            'info'
+        );
+
+        return;
+
+    }
+
+
+    let csv =
+        data.map(
+            function (row) {
+
+                return row.map(
+                    function (cell) {
+
+                        const value =
+                            String(
+                                cell === null ||
+                                cell === undefined
+                                    ? ''
+                                    : cell
+                            )
+                            .replace(
+                                /"/g,
+                                '""'
+                            );
+
+                        return '"' +
+                            value +
+                            '"';
+
+                    }
+                ).join(',');
+
+            }
+        ).join('\n');
+
+
+    const blob =
+        new Blob(
+            [
+                '\uFEFF' +
+                csv
+            ],
+            {
+                type:
+                    'text/csv;charset=utf-8;'
+            }
+        );
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+    const link =
+        document.createElement(
+            'a'
+        );
+
+    link.href =
+        url;
+
+    link.download =
+        filename;
+
+    document.body.appendChild(
+        link
+    );
+
+    link.click();
+
+    link.remove();
+
+    URL.revokeObjectURL(
+        url
+    );
+
+}
+
+
+/* ================================================================
+   GLOBAL HELPERS
+   ================================================================ */
+
+window.KeuanganPokja = {
+
+    refresh:
+        refreshAll,
+
+    load:
+        loadAllData,
+
+    showSection:
+        showSection,
+
+    openModal:
+        openModal,
+
+    closeModal:
+        closeModal,
+
+    export:
+        exportCurrentData,
+
+    formatRupiah:
+        formatRupiah
+
+};
+
+
+/* ================================================================
+   END OF SCRIPT.JS
+   ================================================================ */
