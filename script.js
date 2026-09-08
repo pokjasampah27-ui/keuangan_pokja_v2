@@ -53,7 +53,7 @@ const CONFIG = Object.freeze({
    * https://script.google.com/macros/s/AKfycbxxxxxxxx/exec
    */
   API_URL:
-    'GANTI_DENGAN_URL_WEB_APP_APPS_SCRIPT_ANDA',
+    'https://script.google.com/macros/s/AKfycby8HssHrbPp7Njhy9TpP9kC3fOSx1MTNmontcdN3H_v57txKJNc5llC1nrvXr0WPqtt/exec',
 
   TIMEZONE:
     'Asia/Jakarta',
